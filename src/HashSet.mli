@@ -35,4 +35,4 @@ module Make
 (A : ARRAY)
 (_ : SENTINELS with type t = A.element)
 (V : HashedType with type t = A.element)
-: S with type element = V.t
+: SET with type element = V.t

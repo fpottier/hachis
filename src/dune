@@ -11,5 +11,17 @@
   (release (flags :standard -noassert ))
 )
 
+;; Some files require preprocessing by cppo.
+
+(rule
+  (targets HashSet.ml)
+  (deps Table.cppo.ml)
+  (action (run %{bin:cppo} -D SET Table.cppo.ml -o %{targets})))
+
+(rule
+  (targets HashMap.ml)
+  (deps Table.cppo.ml)
+  (action (run %{bin:cppo} -D MAP Table.cppo.ml -o %{targets})))
+
 ;; Request documentation.
 (documentation)

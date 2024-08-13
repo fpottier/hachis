@@ -12,23 +12,31 @@
 (* This code can implement either a hash set or a hash map. We refer to this
    data structure in a neutral way as a "table". *)
 
+(* If the table is a set, then we refer to the set's elements as keys. *)
+
+(* If the table is a map, then we refer to the elements of the domain as
+   keys, and we refer to the elements of the codomain as values. *)
+
 open Signatures
 
 module[@inline] Make
-(A : ARRAY)
-(S : SENTINELS with type t = A.element)
-(V : HashedType with type t = A.element)
+(K : ARRAY)
+(S : SENTINELS with type t = K.element)
+(H : HashedType with type t = K.element)
+#ifdef MAP
+(V : ARRAY)
+#endif
 = struct
-open V
+open H
 open S
 
 type key =
-  V.t
+  K.element
 
 (* Although [equal] is traditionally named [equal], it is really
    an equivalence test. We rename it to [equiv] internally. *)
 
-let equiv =
+let equiv : key -> key -> bool =
   equal
 
 (* -------------------------------------------------------------------------- *)
@@ -89,7 +97,7 @@ type table = {
   (* The capacity of the [key] array, minus one. *)
   mutable mask       : int;
   (* The key array. The length of this array is a power of two. *)
-  mutable key        : A.t;
+  mutable key        : K.t;
 }
 
 (* A hash code is an arbitrary integer. *)
@@ -129,7 +137,7 @@ let[@inline] population (s : table) : population =
   s.population
 
 let[@inline] capacity (s : table) : capacity =
-  A.length s.key
+  K.length s.key
 
 let[@inline] occupancy (s : table) : float =
   float (s.occupied) /. float (capacity s)
@@ -183,14 +191,14 @@ let check s =
     assert (0 <= s.occupied && s.occupied <= capacity);
     let pop, occ = ref 0, ref 0 in
     for k = 0 to capacity - 1 do
-      let content = A.unsafe_get s.key k in
+      let content = K.unsafe_get s.key k in
       if content == void then
         ()
       else if content == tomb then begin
         incr occ;
         if forbid_tomb_void then
           (* [tomb] is never followed with [void]. *)
-          assert (A.unsafe_get s.key (next s k) != void)
+          assert (K.unsafe_get s.key (next s k) != void)
       end
       else begin
         incr occ; incr pop
@@ -255,7 +263,7 @@ let[@inline] crowded s =
 let rec mem (s : table) (x : key) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the table. *)
     false
@@ -274,7 +282,7 @@ let rec mem (s : table) (x : key) (j : int) : bool =
 let rec find (s : table) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the table. *)
     raise Not_found
@@ -293,7 +301,7 @@ let rec find (s : table) (x : key) (j : int) : key =
 let rec length (s : table) (x : key) (j : int) (accu : int) : int =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the table. *)
     accu
@@ -322,17 +330,17 @@ let rec length (s : table) (x : key) (j : int) (accu : int) : int =
 
 let zap s j v =
   assert (is_index s j);
-  assert (is_not_sentinel (A.unsafe_get s.key j));
+  assert (is_not_sentinel (K.unsafe_get s.key j));
   (* Test whether the next slot is void. *)
-  if forbid_tomb_void && A.unsafe_get s.key (next s j) == void then begin
+  if forbid_tomb_void && K.unsafe_get s.key (next s j) == void then begin
     (* The next slot is void. In order to maintain the invariant
        that [tomb] is never followed with [void], we must replace
        [x], as well as all previous tombstones, with [void]. *)
-    A.unsafe_set s.key j void;
+    K.unsafe_set s.key j void;
     let k = ref (prev s j) in
     let count = ref 1 in
-    while A.unsafe_get s.key !k == tomb do
-      A.unsafe_set s.key !k void;
+    while K.unsafe_get s.key !k == tomb do
+      K.unsafe_set s.key !k void;
       k := prev s !k;
       count := !count + 1
     done;
@@ -343,7 +351,7 @@ let zap s j v =
   else begin
     (* The next slot is not void, or we do not forbid [tomb] followed
        with [void]. Write a tombstone at index [j]. *)
-    A.unsafe_set s.key j tomb
+    K.unsafe_set s.key j tomb
     (* [s.occupied] is unchanged. *)
   end;
   v
@@ -361,7 +369,7 @@ let zap s j v =
 let rec remove (s : table) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the table. *)
     raise Not_found
@@ -393,10 +401,10 @@ let rec remove (s : table) (x : key) (j : int) : key =
 let rec add (s : table) (x : key) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the table, and can be inserted here. *)
-    A.unsafe_set s.key j x;
+    K.unsafe_set s.key j x;
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
     true
@@ -427,13 +435,13 @@ let rec add (s : table) (x : key) (j : int) : bool =
 and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s t);
-  assert (A.unsafe_get s.key t == tomb);
+  assert (K.unsafe_get s.key t == tomb);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the table. Insert it at index [t],
        which currently contains a tombstone. *)
-    A.unsafe_set s.key t x;
+    K.unsafe_set s.key t x;
     s.population <- s.population + 1;
       (* [s.occupied] is unchanged. *)
     true
@@ -449,7 +457,7 @@ and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
          at index [t], and zap slot [j]. This means that the next search
          for [x] or [y] will be faster. Furthermore, this can turn one or
          more occupied slots back into void slots. *)
-      A.unsafe_set s.key t y;
+      K.unsafe_set s.key t y;
       (* Zap slot [j] and return [false]. *)
       zap s j false
     end
@@ -478,16 +486,16 @@ and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
 let rec add_absent (s : table) (x : key) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then begin
-    A.unsafe_set s.key j x;
+    K.unsafe_set s.key j x;
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1
   end
   else if c == tomb then begin
     (* Because [x] is not in the table, it can be safely inserted here,
        by overwriting this tombstone. *)
-    A.unsafe_set s.key j x;
+    K.unsafe_set s.key j x;
     s.population <- s.population + 1
     (* [s.occupied] is unchanged. *)
   end
@@ -510,10 +518,10 @@ let rec add_absent (s : table) (x : key) (j : int) =
 let rec find_else_add (s : table) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the table. Insert it, then raise an exception. *)
-    A.unsafe_set s.key j x;
+    K.unsafe_set s.key j x;
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
     raise Not_found
@@ -538,14 +546,14 @@ let rec find_else_add (s : table) (x : key) (j : int) : key =
 and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s t);
-  assert (A.unsafe_get s.key t == tomb);
+  assert (K.unsafe_get s.key t == tomb);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the table. Insert it at index [t],
        which currently contains a tombstone,
        then raise an exception. *)
-    A.unsafe_set s.key t x;
+    K.unsafe_set s.key t x;
     s.population <- s.population + 1;
     (* [s.occupied] is unchanged. *)
     raise Not_found
@@ -563,7 +571,7 @@ and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
          slot [j]. This means that the next search for [x] or [y] will be
          faster. Furthermore, this can turn one or more occupied slots back
          into void slots. *)
-      A.unsafe_set s.key t y;
+      K.unsafe_set s.key t y;
       (* Zap slot [j] and return [y]. *)
       zap s j y
     end
@@ -587,10 +595,10 @@ and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
 let rec add_absent_no_updates (s : table) (x : key) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.key j in
+  let c = K.unsafe_get s.key j in
   assert (c != tomb);
   if c == void then
-    A.unsafe_set s.key j x
+    K.unsafe_set s.key j x
   else
     let y = c in
     assert (not (equiv x y));
@@ -610,7 +618,7 @@ let resize (s : table) (factor : int) =
   let old_capacity = capacity s in
   let capacity = factor * old_capacity in
   s.mask <- capacity - 1;
-  s.key <- A.make capacity void;
+  s.key <- K.make capacity void;
   (* At this point, [s] is a valid empty table, except for the [population]
      and [occupied] fields. *)
   (* Every key of the old key array must now be inserted into [s]. Each
@@ -619,7 +627,7 @@ let resize (s : table) (factor : int) =
      and [occupied] fields need not be updated. Thus, [add_absent_no_updates]
      is used. *)
   for k = 0 to old_capacity - 1 do
-    let c = A.unsafe_get old_key k in
+    let c = K.unsafe_get old_key k in
     if is_not_sentinel c then
       let x = c in
       add_absent_no_updates s x (start s x)
@@ -637,7 +645,7 @@ let create () =
   let population = 0
   and occupied = 0
   and mask = capacity - 1
-  and key = A.make capacity void in
+  and key = K.make capacity void in
   { population; occupied; mask; key }
 
 let[@inline] validate (x : key) =
@@ -694,7 +702,7 @@ let clear (s : table) =
   s.population <- 0;
   s.occupied <- 0;
   for k = 0 to capacity s - 1 do
-    A.unsafe_set s.key k void
+    K.unsafe_set s.key k void
   done
 
 let reset (s : table) =
@@ -702,7 +710,7 @@ let reset (s : table) =
   let population = 0
   and occupied = 0
   and mask = capacity - 1
-  and key = A.make capacity void in
+  and key = K.make capacity void in
   s.population <- population;
   s.occupied <- occupied;
   s.mask <- mask;
@@ -717,13 +725,13 @@ let[@inline] cleanup (s : table) =
 (* [array_copy] copies a [key] array. We could in principle use a [fill]
    function, but the module [A] does not offer one, so we use a loop. *)
 
-let array_copy (old_key : A.t) : A.t =
-  let capacity = A.length old_key in
-  let new_key = A.make capacity void in
+let array_copy (old_key : K.t) : K.t =
+  let capacity = K.length old_key in
+  let new_key = K.make capacity void in
   for k = 0 to capacity - 1 do
-    let c = A.unsafe_get old_key k in
+    let c = K.unsafe_get old_key k in
     if c != void then
-      A.unsafe_set new_key k c
+      K.unsafe_set new_key k c
   done;
   new_key
 
@@ -736,8 +744,8 @@ let copy (s : table) : table =
   { s with key = array_copy s.key }
 
 let iter f (s : table) =
-  for i = 0 to A.length s.key - 1 do
-    let c = A.unsafe_get s.key i in
+  for i = 0 to K.length s.key - 1 do
+    let c = K.unsafe_get s.key i in
     if is_not_sentinel c then
       let x = c in
       f x
@@ -815,7 +823,21 @@ let statistics (s : table) : string =
 
 (* For sets only. *)
 
+#ifdef SET
 type element = key
 type set = table
+#endif
+
+#ifdef MAP
+type map = table
+type value = V.element
+#endif
+
+(* TODO *)
+#ifdef MAP
+let () =
+  ignore (check, mem, find, add, add_absent, find_else_add,
+          remove, clear, reset, cleanup, copy, show, statistics)
+#endif
 
 end
