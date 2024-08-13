@@ -1,0 +1,2 @@
+(lang dune 2.0)
+(context (opam (switch 5.2.0)))

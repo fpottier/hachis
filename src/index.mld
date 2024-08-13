@@ -1,0 +1,10 @@
+{0 Hachis}
+
+[hachis] is an OCaml library that offers [...].
+
+{1 Installation and Usage}
+
+Type [opam install hachis].
+
+In your [dune] file, add [(libraries hachis)] to the description of
+your [library] or [executable].

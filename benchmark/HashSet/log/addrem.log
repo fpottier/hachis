@@ -1,0 +1,9 @@
+add/rem (n = 2000000, u = 2000000) (Hashtbl).
+add/rem: 1600210 insertions, 399790 deletions, max population 1200421
+Total time (including setup): 6s; measurements: 005; max group size: 008.
+Cycles     | Nanos      | Major      | Minor      | Promoted   | Allocated  |
+2.842E+00f | 1.184E+02f | 5.843E+00f | 5.087E+00f | 2.950E+00f | 7.979E+00f |
+add/rem (n = 2000000, u = 2000000) (FlatHashSet).
+Total time (including setup): 5.5s; measurements: 010; max group size: 013.
+Cycles     | Nanos      | Major      | Minor      | Promoted   | Allocated  |
+8.805E-01f | 3.669E+01f | 2.549E-04f | 1.048E+00f | 4.233E-06f | 1.049E+00f |

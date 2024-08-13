@@ -1,0 +1,12 @@
+(executable
+  (name main)
+  (libraries hachis common)
+  (ocamlopt_flags :standard -S)
+)
+
+;; Some files require preprocessing by cppo.
+
+(rule
+  (targets main.ml)
+  (deps main.cppo.ml (glob_files *.frag.{ml,mli}))
+  (action (run %{bin:cppo} main.cppo.ml -o %{targets})))

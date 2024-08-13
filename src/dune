@@ -1,0 +1,15 @@
+;; This is a library.
+(library
+  (name hachis)
+  (public_name hachis)
+)
+
+;; Warnings are enabled in development builds and disabled in release builds.
+;; Assertions are disabled in release builds.
+(env
+  (dev     (flags :standard -w @A-4-44))
+  (release (flags :standard -noassert ))
+)
+
+;; Request documentation.
+(documentation)
