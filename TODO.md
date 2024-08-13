@@ -1,8 +1,11 @@
 # To Do
 
 * Add hash maps, while sharing code, if possible.
+  In `HashMap`, add `foreach_key`, which reads just the keys.
 
 * Benchmark more operations.
+
+* Require the module `A` to offer `copy`?
 
 * Add a way of choosing the table's capacity and max occupancy rate
   at creation time.
