@@ -65,8 +65,8 @@ let forbid_tomb_void =
        | Key of key
 
    we represent [void] and [tomb] as two sentinels, that is, two special
-   keys that the user is not allowed to insert into the table. This allows us
-   to allocate fewer memory blocks and to use just an array of keys.
+   keys that the user is not allowed to insert into the table. This allows
+   us to allocate fewer memory blocks and to use just an array of keys.
 
    We assume that a sentinel can be recognized using [==]. *)
 
