@@ -9,25 +9,12 @@
 (*       License, with an exception, as described in the file LICENSE.        *)
 (******************************************************************************)
 
+open Signatures
+
 module[@inline] Make
-(A : sig
-  type element
-  type t
-  val make : int -> element -> t
-  val length : t -> int
-  val unsafe_get : t -> int -> element
-  val unsafe_set : t -> int -> element -> unit
-end)
-(S : sig
-  type t = A.element
-  val void : t
-  val tomb : t
-end)
-(V : sig
-  type t = S.t
-  val hash  : t -> int
-  val equal : t -> t -> bool
-end)
+(A : ARRAY)
+(S : SENTINELS with type t = A.element)
+(V : HashedType with type t = A.element)
 = struct
 open V
 open S

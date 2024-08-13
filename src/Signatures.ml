@@ -1,3 +1,24 @@
+module type ARRAY = sig
+  type element
+  type t
+  val make : int -> element -> t
+  val length : t -> int
+  val unsafe_get : t -> int -> element
+  val unsafe_set : t -> int -> element -> unit
+end
+
+module type SENTINELS = sig
+  type t
+  val void : t
+  val tomb : t
+end
+
+module type HashedType = sig
+  type t
+  val hash  : t -> int
+  val equal : t -> t -> bool
+end
+
 module type S = sig
 
   (**The type of the elements of a set. *)
