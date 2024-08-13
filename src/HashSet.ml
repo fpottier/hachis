@@ -11,10 +11,10 @@
 
 module type S = sig
 
-  (**The type of the values contained in a set. *)
-  type value
+  (**The type of the elements of a set. *)
+  type element
 
-  (**The type of sets. A set always contains at most one value of each
+  (**The type of sets. A set always contains at most one element in each
      equivalence class: that is, [mem s x] and [mem s y] and [equiv x y]
      imply [x = y]. *)
   type set
@@ -22,37 +22,37 @@ module type S = sig
   (**[create()] creates a fresh empty set. *)
   val create : unit -> set
 
-  (**[mem s x] determines whether [x], or some equivalent value, is a member
-     of the set [s]. *)
-  val mem : set -> value -> bool
+  (**[mem s x] determines whether [x], or some equivalent element, is a
+     member of the set [s]. *)
+  val mem : set -> element -> bool
 
-  (**[find s x] determines whether some value [y] that is equivalent to [x]
-     is a member of the set [s]. If so, [y] is returned. Otherwise,
+  (**[find s x] determines whether some element [y] that is equivalent to
+     [x] is a member of the set [s]. If so, [y] is returned. Otherwise,
      [Not_found] is raised. *)
-  val find : set -> value -> value
+  val find : set -> element -> element
 
-  (**If [x] or some equivalent value is a member of the set [s], then
+  (**If [x] or some equivalent element is a member of the set [s], then
      [add s x] has no effect and returns [false]. Otherwise, [add s x]
-     inserts the value [x] into the set [s] and returns [true]. *)
-  val add : set -> value -> bool
+     inserts the element [x] into the set [s] and returns [true]. *)
+  val add : set -> element -> bool
 
-  (**[add_absent s x] inserts the value [x] into the set [s]. [x], or
-     some equivalent value, must not already be a member of [s]. No
+  (**[add_absent s x] inserts the element [x] into the set [s]. [x], or
+     some equivalent element, must not already be a member of [s]. No
      result is returned. *)
-  val add_absent : set -> value -> unit
+  val add_absent : set -> element -> unit
 
-  (**[find_else_add s x] determines whether some value [y] that is equivalent
+  (**[find_else_add s x] determines whether some element [y] that is equivalent
      to [x] is a member of the set [s]. If so, [y] is returned. Otherwise, the
-     value [x] is inserted into the set [s], and [Not_found] is raised.
+     element [x] is inserted into the set [s], and [Not_found] is raised.
 
      [find_else_add s x ] is equivalent to
      [try find s x with Not_found -> add_absent s x; raise Not_found]. *)
-  val find_else_add : set -> value -> value
+  val find_else_add : set -> element -> element
 
-  (**If some value [y] that is equivalent to [x] is a member of the set
+  (**If some element [y] that is equivalent to [x] is a member of the set
      [s], then [remove s x] removes [y] from the set [s] and returns
      [y]. Otherwise, this call has no effect and raises [Not_found]. *)
-  val remove : set -> value -> value
+  val remove : set -> element -> element
 
   type population = int
 
@@ -60,14 +60,14 @@ module type S = sig
   val population : set -> population
 
   (**[cleanup s] cleans up the internal representation of the set by freeing
-     the space occupied by any previously removed values. If many values
+     the space occupied by any previously removed elements. If many elements
      have been recently removed from the set, this can free up some space
      and delay the need to grow the set's internal data array. *)
   val cleanup : set -> unit
 
   (**[clear s] empties the set [s]. The internal data array is retained,
      and is erased. This time complexity of this operation is linear in
-     the size of the data array. *)
+     the size of the internal data array. *)
   val clear : set -> unit
 
   (**[reset s] empties the set [s]. The internal data array is abandoned.
@@ -80,12 +80,12 @@ module type S = sig
 
   (**[iter f s] applies the user-supplied function [f] in turn to each
      member of the set [s]. *)
-  val iter : (value -> unit) -> set -> unit
+  val iter : (element -> unit) -> set -> unit
 
   (**[show f s] returns a textual representation of the members of
      the set [s]. The user-supplied function [f] is used to obtain a
      textual representation of each member. *)
-  val show : (value -> string) -> set -> string
+  val show : (element -> string) -> set -> string
 
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
@@ -126,7 +126,7 @@ end)
 open V
 open S
 
-type value =
+type element =
   V.t
 
 (* Although [equal] is traditionally named [equal], it is really
@@ -141,7 +141,7 @@ let equiv =
 
    + [void],   an empty slot;
    + [tomb],   a slot that was once occupied, but is now empty; or
-   + [x],      a slot that currently contains the value [x]. *)
+   + [x],      a slot that currently contains the element [x]. *)
 
 (* The difference between [void] and [tomb] is that [void] stops a search,
    whereas [tomb] does not. In other words, when searching linearly for an
@@ -166,7 +166,7 @@ let forbid_tomb_void =
      type content =
        | Void
        | Tomb
-       | Data of value
+       | Data of element
 
    we represent [void] and [tomb] as two sentinel values, that is, two
    special values that the user is not allowed to insert into the set.
@@ -176,7 +176,7 @@ let forbid_tomb_void =
    We assume that a sentinel can be recognized using [==]. *)
 
 type content =
-  value
+  element
 
 let[@inline] is_sentinel (c : content) =
   c == void || c == tomb
@@ -251,7 +251,7 @@ let[@inline] index (s : set) (h : hash) : index =
 
 (* [start s x] is the index where a search for [x] begins. *)
 
-let[@inline] start (s : set) (x : value) : index =
+let[@inline] start (s : set) (x : element) : index =
   index s (hash x)
 
 (* [next s i] increments the index [i] into the [data] array, while handling
@@ -351,13 +351,13 @@ let[@inline] crowded s =
 (* Membership tests: [mem] and [find]. *)
 
 (* We search for an element [x] in order to determine whether [x]
-   (or some value that is equivalent to [x]) is present in the set. *)
+   (or some element that is equivalent to [x]) is present in the set. *)
 
 (* [j] is the index that is currently under examination. *)
 
 (* The Boolean result indicates whether [x] was found. *)
 
-let rec mem (s : set) (x : value) (j : int) : bool =
+let rec mem (s : set) (x : element) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -376,7 +376,7 @@ let rec mem (s : set) (x : value) (j : int) : bool =
 (* [find] is analogous to [mem], but returns the element [y] that is found,
    and raises an exception if no element that is equivalent to [x] is found. *)
 
-let rec find (s : set) (x : value) (j : int) : value =
+let rec find (s : set) (x : element) (j : int) : element =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -395,7 +395,7 @@ let rec find (s : set) (x : value) (j : int) : value =
 (* [length] is analogous to [mem], but measures the length of the linear
    scan that is required to find [x]. It is used by [statistics]. *)
 
-let rec length (s : set) (x : value) (j : int) (accu : int) : int =
+let rec length (s : set) (x : element) (j : int) (accu : int) : int =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -413,7 +413,7 @@ let rec length (s : set) (x : value) (j : int) (accu : int) : int =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [zap s j v] zaps slot [j] (which must be contain a value) and returns [v]. *)
+(* [zap s j v] zaps slot [j] (which must contain an element) and returns [v]. *)
 
 (* To zap a slot means to overwrite this slot with [tomb] or [void]. *)
 
@@ -462,7 +462,7 @@ let zap s j v =
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec remove (s : set) (x : value) (j : int) : value =
+let rec remove (s : set) (x : element) (j : int) : element =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -494,7 +494,7 @@ let rec remove (s : set) (x : value) (j : int) : value =
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec add (s : set) (x : value) (j : int) : bool =
+let rec add (s : set) (x : element) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -528,7 +528,7 @@ let rec add (s : set) (x : value) (j : int) : bool =
    If [x] (or an equivalent element) is found then nothing happens
    and [false] is returned. *)
 
-and add_at_tombstone (s : set) (x : value) (t : int) (j : int) : bool =
+and add_at_tombstone (s : set) (x : element) (t : int) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s t);
   assert (A.unsafe_get s.data t == tomb);
@@ -579,7 +579,7 @@ and add_at_tombstone (s : set) (x : value) (t : int) (j : int) : bool =
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec add_absent (s : set) (x : value) (j : int) =
+let rec add_absent (s : set) (x : element) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -611,7 +611,7 @@ let rec add_absent (s : set) (x : value) (j : int) =
    the set, if no element that is equivalent to [x] is found, before raising
    an exception. It is a combination of [find] and [add]. *)
 
-let rec find_else_add (s : set) (x : value) (j : int) : value =
+let rec find_else_add (s : set) (x : element) (j : int) : element =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -639,7 +639,7 @@ let rec find_else_add (s : set) (x : value) (j : int) : value =
    and [Not_found] is raised.
    If [x] (or an equivalent element) is found then nothing happens. *)
 
-and find_else_add_at_tombstone (s : set) (x : value) (t : int) (j : int) : value =
+and find_else_add_at_tombstone (s : set) (x : element) (t : int) (j : int) : element =
   assert (is_not_sentinel x);
   assert (is_index s t);
   assert (A.unsafe_get s.data t == tomb);
@@ -688,7 +688,7 @@ and find_else_add_at_tombstone (s : set) (x : value) (t : int) (j : int) : value
 
 (* This auxiliary function is used by [resize]. *)
 
-let rec add_absent_no_updates (s : set) (x : value) (j : int) =
+let rec add_absent_no_updates (s : set) (x : element) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = A.unsafe_get s.data j in
@@ -744,21 +744,21 @@ let create () =
   and data = A.make capacity void in
   { population; occupied; mask; data }
 
-let[@inline] validate (x : value) =
+let[@inline] validate (x : element) =
   assert (is_not_sentinel x)
     (* We use an assertion that is erased in release mode.
        If we wanted this module to be more defensive, we
        could keep a defensive test in release mode. *)
 
-let[@inline] mem (s : set) (x : value) : bool =
+let[@inline] mem (s : set) (x : element) : bool =
   validate x;
   mem s x (start s x)
 
-let[@inline] find (s : set) (x : value) : value =
+let[@inline] find (s : set) (x : element) : element =
   validate x;
   find s x (start s x)
 
-let[@inline] length (s : set) (x : value) : int =
+let[@inline] length (s : set) (x : element) : int =
   validate x;
   length s x (start s x) 0
 
@@ -771,18 +771,18 @@ let[@inline] possibly_resize (s : set) =
      would diverge. *)
   assert (population s < capacity s)
 
-let add (s : set) (x : value) : bool =
+let add (s : set) (x : element) : bool =
   validate x;
   let was_added = add s x (start s x) in
   if was_added then possibly_resize s;
   was_added
 
-let add_absent (s : set) (x : value) =
+let add_absent (s : set) (x : element) =
   validate x;
   add_absent s x (start s x);
   possibly_resize s
 
-let find_else_add (s : set) (x : value) =
+let find_else_add (s : set) (x : element) =
   validate x;
   try
     find_else_add s x (start s x)
@@ -790,7 +790,7 @@ let find_else_add (s : set) (x : value) =
     possibly_resize s;
     raise e
 
-let[@inline] remove (s : set) (x : value) : value =
+let[@inline] remove (s : set) (x : element) : element =
   validate x;
   remove s x (start s x)
 

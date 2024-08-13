@@ -17,8 +17,8 @@ module A = struct
   type t = element array
 end
 
-(* We use nonnegative integer values, and equip them with an equivalence
-   relation that is not equality. We view two integer values as equivalent
+(* We use nonnegative integer elements, and equip them with an equivalence
+   relation that is not equality. We view two integer elements as equivalent
    if they are equal except possibly in their least significant bit. *)
 module V = struct
   type t = int
@@ -28,7 +28,7 @@ module V = struct
 end
 
 (* We use -1 and -2 as sentinels. Our generators must be careful not
-   to produce these values. *)
+   to produce these elements. *)
 module S = struct type t = int let void = (-1) let tomb = (-2) end
 
 module R = Reference.Make(V)
@@ -62,7 +62,7 @@ let set =
 
 (* We draw random non-sentinel (nonnegative) integer keys. *)
 
-let value =
+let element =
   semi_open_interval 0 32
 
 (* The absence of a key in a set
@@ -89,22 +89,22 @@ let () =
   let spec = unit ^> set in
   declare "create" spec R.create C.create;
 
-  let spec = set ^> value ^> bool in
+  let spec = set ^> element ^> bool in
   declare "mem" spec R.mem C.mem;
 
-  let spec = set ^> value ^!> value in
+  let spec = set ^> element ^!> element in
   declare "find" spec R.find C.find;
 
-  let spec = set ^> value ^> bool in
+  let spec = set ^> element ^> bool in
   declare "add" spec R.add C.add;
 
-  let spec = set ^>> fun s -> (absent s) % value ^> unit in
+  let spec = set ^>> fun s -> (absent s) % element ^> unit in
   declare "add_absent" spec R.add_absent C.add_absent;
 
-  let spec = set ^> value ^!> value in
+  let spec = set ^> element ^!> element in
   declare "find_else_add" spec R.find_else_add C.find_else_add;
 
-  let spec = set ^> value ^!> value in
+  let spec = set ^> element ^!> element in
   declare "remove" spec R.remove C.remove;
 
   let spec = set ^> int in
@@ -122,7 +122,7 @@ let () =
   let spec = set ^> set in
   declare "copy" spec R.copy C.copy;
 
-  let spec = set ^> list value in
+  let spec = set ^> list element in
   declare "elements_of_iter iter" spec
     (elements_of_iter R.iter) (elements_of_iter C.iter);
 
