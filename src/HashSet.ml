@@ -19,8 +19,11 @@ module[@inline] Make
 open V
 open S
 
-type element =
+type key =
   V.t
+
+type element =
+  key
 
 (* Although [equal] is traditionally named [equal], it is really
    an equivalence test. We rename it to [equiv] internally. *)
@@ -30,26 +33,26 @@ let equiv =
 
 (* -------------------------------------------------------------------------- *)
 
-(* In the main [data] array, the content of each slot can be:
+(* In the main [key] array, the content of each slot can be:
 
    + [void],   an empty slot;
    + [tomb],   a slot that was once occupied, but is now empty; or
-   + [x],      a slot that currently contains the element [x]. *)
+   + [x],      a slot that currently contains the key [x]. *)
 
 (* The difference between [void] and [tomb] is that [void] stops a search,
-   whereas [tomb] does not. In other words, when searching linearly for an
-   element [x], if an empty slot is encountered, then the search stops, as
-   the data structure's invariant guarantees that [x] cannot appear beyond
-   this empty slot; whereas if a tombstone is encountered, then the search
+   whereas [tomb] does not. In other words, when searching linearly for a
+   key [x], if an empty slot is encountered, then the search stops, as the
+   data structure's invariant guarantees that [x] cannot appear beyond this
+   empty slot; whereas if a tombstone is encountered, then the search
    continues, as [x] could appear beyond this tombstone. In other words, we
    maintain the following invariant: if [x] is in the set then it must
    appear between the index [start s x] and the first [void] slot. *)
 
 (* Furthermore (this is optional), we maintain the invariant that a [tomb]
    slot is never followed with a [void] slot. To achieve this, in [remove],
-   if the element that is being removed is followed with [void], then this
-   element and all preceding tombstones are overwritten with [void]. This
-   makes [remove] more costly but allows us to maintain a lower occupancy. *)
+   if the key that is being removed is followed with [void], then this key
+   and all preceding tombstones are overwritten with [void]. This makes
+   [remove] more costly but allows us to maintain a lower occupancy. *)
 
 let forbid_tomb_void =
   true
@@ -59,12 +62,11 @@ let forbid_tomb_void =
      type content =
        | Void
        | Tomb
-       | Data of element
+       | Key of key
 
-   we represent [void] and [tomb] as two sentinel values, that is, two
-   special values that the user is not allowed to insert into the set.
-   This allows us to allocate fewer memory blocks and to use just an
-   array of elements.
+   we represent [void] and [tomb] as two sentinels, that is, two special
+   keys that the user is not allowed to insert into the set. This allows us
+   to allocate fewer memory blocks and to use just an array of keys.
 
    We assume that a sentinel can be recognized using [==]. *)
 
@@ -80,14 +82,14 @@ let[@inline] is_not_sentinel (c : content) =
 (* A hash set is represented as follows. *)
 
 type set = {
-  (* The number of data elements in the [data] array. *)
+  (* The number of keys in the [key] array. *)
   mutable population : int;
-  (* The number of data and [tomb] elements in the [data] array. *)
+  (* The number of keys and tombstones in the [key] array. *)
   mutable occupied   : int;
-  (* The capacity of the [data] array, minus one. *)
+  (* The capacity of the [key] array, minus one. *)
   mutable mask       : int;
-  (* The data array. The length of this array is a power of two. *)
-  mutable data       : A.t;
+  (* The key array. The length of this array is a power of two. *)
+  mutable key        : A.t;
 }
 
 (* A hash code is an arbitrary integer. *)
@@ -95,7 +97,7 @@ type set = {
 type hash =
   int
 
-(* An index into the [data] array. *)
+(* An index into the [key] array. *)
 
 type index =
   int
@@ -119,7 +121,7 @@ type capacity =
    search terminates.
 
    Indeed, imagine what could happen if occupancy counted empty slots only.
-   Imagine that the [data] array is filled with tombstones. Then, occupancy
+   Imagine that the [key] array is filled with tombstones. Then, occupancy
    would be zero, yet every search would diverge, as it would never find an
    empty slot. *)
 
@@ -127,39 +129,39 @@ let[@inline] population (s : set) : population =
   s.population
 
 let[@inline] capacity (s : set) : capacity =
-  A.length s.data
+  A.length s.key
 
 let[@inline] occupancy (s : set) : float =
   float (s.occupied) /. float (capacity s)
 
 (* -------------------------------------------------------------------------- *)
 
-(* [index s h] converts the hash code [h] to an index into the [data] array. *)
+(* [index s h] converts the hash code [h] to an index into the [key] array. *)
 
 let[@inline] index (s : set) (h : hash) : index =
-  (* Because the length of the [data] array is a power of two,
+  (* Because the length of the [key] array is a power of two,
      the desired index can be computed by keeping just the least
      significant bits of the hash code [h], as follows. *)
   h land s.mask
 
 (* [start s x] is the index where a search for [x] begins. *)
 
-let[@inline] start (s : set) (x : element) : index =
+let[@inline] start (s : set) (x : key) : index =
   index s (hash x)
 
-(* [next s i] increments the index [i] into the [data] array, while handling
+(* [next s i] increments the index [i] into the [key] array, while handling
    wrap-around. *)
 
 let[@inline] next (s : set) (i : index) : index =
   (i + 1) land s.mask
 
-(* [prev s i] decrements the index [i] into the [data] array, while handling
+(* [prev s i] decrements the index [i] into the [key] array, while handling
    wrap-around. *)
 
 let[@inline] prev (s : set) (i : index) : index =
   (i - 1) land s.mask
 
-(* [is_index s i] checks that [i] is valid index into the [data ]array. *)
+(* [is_index s i] checks that [i] is valid index into the [key ]array. *)
 
 let[@inline] is_index (s : set) (i : index) : bool =
   0 <= i && i < capacity s
@@ -181,14 +183,14 @@ let check s =
     assert (0 <= s.occupied && s.occupied <= capacity);
     let pop, occ = ref 0, ref 0 in
     for k = 0 to capacity - 1 do
-      let content = A.unsafe_get s.data k in
+      let content = A.unsafe_get s.key k in
       if content == void then
         ()
       else if content == tomb then begin
         incr occ;
         if forbid_tomb_void then
           (* [tomb] is never followed with [void]. *)
-          assert (A.unsafe_get s.data (next s k) != void)
+          assert (A.unsafe_get s.key (next s k) != void)
       end
       else begin
         incr occ; incr pop
@@ -204,14 +206,14 @@ let check s =
 (* Two parameters: initial capacity and maximal occupancy. *)
 
 (* To ensure that the linear search terminates, one must guarantee that there
-   is always at least one [void] slot in the [data] array. This property must
+   is always at least one [void] slot in the [key] array. This property must
    hold also after an insertion, as the question "should we resize?" is asked
    after each insertion (as opposed to before each insertion).
 
    Thus, we must guarantee that, before an insertion, there exist at least two
    [void] slots. To guarantee this, it is sufficient to initially enforce
    [max_occupancy + 2/initial_capacity <= 1].
-   Thereafter, the capacity of the [data] array can only grow, so
+   Thereafter, the capacity of the [key] array can only grow, so
    [max_occupancy + 2/capacity <= 1]
    must be true as well. *)
 
@@ -243,17 +245,17 @@ let[@inline] crowded s =
 
 (* Membership tests: [mem] and [find]. *)
 
-(* We search for an element [x] in order to determine whether [x]
-   (or some element that is equivalent to [x]) is present in the set. *)
+(* We search for a key [x] in order to determine whether [x] (or some key
+   that is equivalent to [x]) is present in the set. *)
 
 (* [j] is the index that is currently under examination. *)
 
 (* The Boolean result indicates whether [x] was found. *)
 
-let rec mem (s : set) (x : element) (j : int) : bool =
+let rec mem (s : set) (x : key) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the set. *)
     false
@@ -266,13 +268,13 @@ let rec mem (s : set) (x : element) (j : int) : bool =
        otherwise, skip this slot and continue searching. *)
     equiv x y || mem s x (next s j)
 
-(* [find] is analogous to [mem], but returns the element [y] that is found,
-   and raises an exception if no element that is equivalent to [x] is found. *)
+(* [find] is analogous to [mem], but returns the key [y] that is found,
+   and raises an exception if no key that is equivalent to [x] is found. *)
 
-let rec find (s : set) (x : element) (j : int) : element =
+let rec find (s : set) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the set. *)
     raise Not_found
@@ -288,10 +290,10 @@ let rec find (s : set) (x : element) (j : int) : element =
 (* [length] is analogous to [mem], but measures the length of the linear
    scan that is required to find [x]. It is used by [statistics]. *)
 
-let rec length (s : set) (x : element) (j : int) (accu : int) : int =
+let rec length (s : set) (x : key) (j : int) (accu : int) : int =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the set. *)
     accu
@@ -306,7 +308,8 @@ let rec length (s : set) (x : element) (j : int) (accu : int) : int =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [zap s j v] zaps slot [j] (which must contain an element) and returns [v]. *)
+(* [zap s j v] zaps slot [j] (which must contain a key, as opposed to a
+   sentinel) and returns [v]. *)
 
 (* To zap a slot means to overwrite this slot with [tomb] or [void]. *)
 
@@ -319,17 +322,17 @@ let rec length (s : set) (x : element) (j : int) (accu : int) : int =
 
 let zap s j v =
   assert (is_index s j);
-  assert (is_not_sentinel (A.unsafe_get s.data j));
+  assert (is_not_sentinel (A.unsafe_get s.key j));
   (* Test whether the next slot is void. *)
-  if forbid_tomb_void && A.unsafe_get s.data (next s j) == void then begin
+  if forbid_tomb_void && A.unsafe_get s.key (next s j) == void then begin
     (* The next slot is void. In order to maintain the invariant
        that [tomb] is never followed with [void], we must replace
        [x], as well as all previous tombstones, with [void]. *)
-    A.unsafe_set s.data j void;
+    A.unsafe_set s.key j void;
     let k = ref (prev s j) in
     let count = ref 1 in
-    while A.unsafe_get s.data !k == tomb do
-      A.unsafe_set s.data !k void;
+    while A.unsafe_get s.key !k == tomb do
+      A.unsafe_set s.key !k void;
       k := prev s !k;
       count := !count + 1
     done;
@@ -340,7 +343,7 @@ let zap s j v =
   else begin
     (* The next slot is not void, or we do not forbid [tomb] followed
        with [void]. Write a tombstone at index [j]. *)
-    A.unsafe_set s.data j tomb
+    A.unsafe_set s.key j tomb
     (* [s.occupied] is unchanged. *)
   end;
   v
@@ -349,16 +352,16 @@ let zap s j v =
 
 (* Deletion: [remove]. *)
 
-(* We search for an element [x] and remove it if it is present. *)
+(* We search for a key [x] and remove it if it is present. *)
 
 (* The Boolean result indicates whether [x] was found and removed. *)
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec remove (s : set) (x : element) (j : int) : element =
+let rec remove (s : set) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then
     (* [x] is not in the set. *)
     raise Not_found
@@ -368,7 +371,7 @@ let rec remove (s : set) (x : element) (j : int) : element =
   else
     let y = c in
     if equiv x y then begin
-      (* We have found an element [y] that is equivalent to [x]. *)
+      (* We have found a key [y] that is equivalent to [x]. *)
       s.population <- s.population - 1;
       (* Zap slot [j] and return [y]. *)
       zap s j y
@@ -381,19 +384,19 @@ let rec remove (s : set) (x : element) (j : int) : element =
 
 (* Insertion: [add]. *)
 
-(* We search for an element [x] and insert it if it is absent. *)
+(* We search for a key [x] and insert it if it is absent. *)
 
 (* The Boolean result indicates whether [x] was inserted. *)
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec add (s : set) (x : element) (j : int) : bool =
+let rec add (s : set) (x : key) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the set, and can be inserted here. *)
-    A.unsafe_set s.data j x;
+    A.unsafe_set s.key j x;
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
     true
@@ -418,19 +421,19 @@ let rec add (s : set) (x : element) (j : int) : bool =
    [t] must be the index of a tombstone.
    If [x] is not found then [x] is inserted at index [t],
    and [true] is returned.
-   If [x] (or an equivalent element) is found then nothing happens
+   If [x] (or an equivalent key) is found then nothing happens
    and [false] is returned. *)
 
-and add_at_tombstone (s : set) (x : element) (t : int) (j : int) : bool =
+and add_at_tombstone (s : set) (x : key) (t : int) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s t);
-  assert (A.unsafe_get s.data t == tomb);
+  assert (A.unsafe_get s.key t == tomb);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the set. Insert it at index [t],
        which currently contains a tombstone. *)
-    A.unsafe_set s.data t x;
+    A.unsafe_set s.key t x;
     s.population <- s.population + 1;
       (* [s.occupied] is unchanged. *)
     true
@@ -441,12 +444,12 @@ and add_at_tombstone (s : set) (x : element) (t : int) (j : int) : bool =
   else begin
     let y = c in
     if equiv x y then begin
-      (* An element [y] that is equivalent to [x] is already in the set. *)
+      (* A key [y] that is equivalent to [x] is already in the set. *)
       (* We could do nothing and return [false]. Instead, we write [y]
          at index [t], and zap slot [j]. This means that the next search
          for [x] or [y] will be faster. Furthermore, this can turn one or
          more occupied slots back into void slots. *)
-      A.unsafe_set s.data t y;
+      A.unsafe_set s.key t y;
       (* Zap slot [j] and return [false]. *)
       zap s j false
     end
@@ -457,9 +460,9 @@ and add_at_tombstone (s : set) (x : element) (t : int) (j : int) : bool =
 
 (* In [add] (above), in case [c == tomb], one might be tempted to always
    overwrite the tombstone with [x], then call a variant of [remove] to find
-   and remove any element [y] that is equivalent to [x] and that is already a
+   and remove any key [y] that is equivalent to [x] and that is already a
    member of the set. Unfortunately, this idea does not work. If the set
-   already contains an element [y] that is equivalent to [x], then [add] is
+   already contains a key [y] that is equivalent to [x], then [add] is
    expected to leave [y] in the set; it must not replace [y] with [x]. *)
 
 (* -------------------------------------------------------------------------- *)
@@ -472,19 +475,19 @@ and add_at_tombstone (s : set) (x : element) (t : int) (j : int) : bool =
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec add_absent (s : set) (x : element) (j : int) =
+let rec add_absent (s : set) (x : key) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then begin
-    A.unsafe_set s.data j x;
+    A.unsafe_set s.key j x;
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1
   end
   else if c == tomb then begin
     (* Because [x] is not in the set, it can be safely inserted here,
        by overwriting this tombstone. *)
-    A.unsafe_set s.data j x;
+    A.unsafe_set s.key j x;
     s.population <- s.population + 1
     (* [s.occupied] is unchanged. *)
   end
@@ -500,17 +503,17 @@ let rec add_absent (s : set) (x : element) (j : int) =
 
 (* Combined search and insertion: [find_else_add]. *)
 
-(* [find_else_add] is analogous to [find], but inserts the element [x] into
-   the set, if no element that is equivalent to [x] is found, before raising
+(* [find_else_add] is analogous to [find], but inserts the key [x] into
+   the set, if no key that is equivalent to [x] is found, before raising
    an exception. It is a combination of [find] and [add]. *)
 
-let rec find_else_add (s : set) (x : element) (j : int) : element =
+let rec find_else_add (s : set) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the set. Insert it, then raise an exception. *)
-    A.unsafe_set s.data j x;
+    A.unsafe_set s.key j x;
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
     raise Not_found
@@ -530,19 +533,19 @@ let rec find_else_add (s : set) (x : element) (j : int) : element =
    [t] must be the index of a tombstone.
    If [x] is not found then [x] is inserted at index [t],
    and [Not_found] is raised.
-   If [x] (or an equivalent element) is found then nothing happens. *)
+   If [x] (or an equivalent key) is found then nothing happens. *)
 
-and find_else_add_at_tombstone (s : set) (x : element) (t : int) (j : int) : element =
+and find_else_add_at_tombstone (s : set) (x : key) (t : int) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s t);
-  assert (A.unsafe_get s.data t == tomb);
+  assert (A.unsafe_get s.key t == tomb);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the set. Insert it at index [t],
        which currently contains a tombstone,
        then raise an exception. *)
-    A.unsafe_set s.data t x;
+    A.unsafe_set s.key t x;
     s.population <- s.population + 1;
     (* [s.occupied] is unchanged. *)
     raise Not_found
@@ -555,12 +558,12 @@ and find_else_add_at_tombstone (s : set) (x : element) (t : int) (j : int) : ele
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
     if equiv x y then begin
-      (* An element [y] that is equivalent to [x] is already in the set. *)
+      (* A key [y] that is equivalent to [x] is already in the set. *)
       (* We could do nothing. Instead, we write [y] at index [t], and zap
          slot [j]. This means that the next search for [x] or [y] will be
          faster. Furthermore, this can turn one or more occupied slots back
          into void slots. *)
-      A.unsafe_set s.data t y;
+      A.unsafe_set s.key t y;
       (* Zap slot [j] and return [y]. *)
       zap s j y
     end
@@ -581,13 +584,13 @@ and find_else_add_at_tombstone (s : set) (x : element) (t : int) (j : int) : ele
 
 (* This auxiliary function is used by [resize]. *)
 
-let rec add_absent_no_updates (s : set) (x : element) (j : int) =
+let rec add_absent_no_updates (s : set) (x : key) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
-  let c = A.unsafe_get s.data j in
+  let c = A.unsafe_get s.key j in
   assert (c != tomb);
   if c == void then
-    A.unsafe_set s.data j x
+    A.unsafe_set s.key j x
   else
     let y = c in
     assert (not (equiv x y));
@@ -595,28 +598,28 @@ let rec add_absent_no_updates (s : set) (x : element) (j : int) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [resize s factor] allocates a new data array whose capacity is [factor]
-   times the capacity of the current [data] array. Then, it copies the content
-   of the old data array to the new one. *)
+(* [resize s factor] allocates a new key array whose capacity is [factor]
+   times the capacity of the current [key] array. Then, it copies the content
+   of the old key array to the new one. *)
 
 (* The [factor] parameter is typically 1 or 2. It must be a power of two. *)
 
 let resize (s : set) (factor : int) =
   assert (is_power_of_two factor);
-  let old_data = s.data in
+  let old_key = s.key in
   let old_capacity = capacity s in
   let capacity = factor * old_capacity in
   s.mask <- capacity - 1;
-  s.data <- A.make capacity void;
+  s.key <- A.make capacity void;
   (* At this point, [s] is a valid empty set, except for the [population]
      and [occupied] fields. *)
-  (* Every element of the old data array must now be inserted into [s]. Each
-     insertion operation inserts a new element (one that is not already
+  (* Every key of the old key array must now be inserted into [s]. Each
+     insertion operation inserts a new key (one that is not already
      present), and no tombstones can be encountered. Also, the [population]
      and [occupied] fields need not be updated. Thus, [add_absent_no_updates]
      is used. *)
   for k = 0 to old_capacity - 1 do
-    let c = A.unsafe_get old_data k in
+    let c = A.unsafe_get old_key k in
     if is_not_sentinel c then
       let x = c in
       add_absent_no_updates s x (start s x)
@@ -634,29 +637,29 @@ let create () =
   let population = 0
   and occupied = 0
   and mask = capacity - 1
-  and data = A.make capacity void in
-  { population; occupied; mask; data }
+  and key = A.make capacity void in
+  { population; occupied; mask; key }
 
-let[@inline] validate (x : element) =
+let[@inline] validate (x : key) =
   assert (is_not_sentinel x)
     (* We use an assertion that is erased in release mode.
        If we wanted this module to be more defensive, we
        could keep a defensive test in release mode. *)
 
-let[@inline] mem (s : set) (x : element) : bool =
+let[@inline] mem (s : set) (x : key) : bool =
   validate x;
   mem s x (start s x)
 
-let[@inline] find (s : set) (x : element) : element =
+let[@inline] find (s : set) (x : key) : key =
   validate x;
   find s x (start s x)
 
-let[@inline] length (s : set) (x : element) : int =
+let[@inline] length (s : set) (x : key) : int =
   validate x;
   length s x (start s x) 0
 
 let[@inline] possibly_resize (s : set) =
-  (* If the maximum occupancy is now exceeded, then the capacity of the [data]
+  (* If the maximum occupancy is now exceeded, then the capacity of the [key]
      array must be increased. (It is doubled.) *)
   if crowded s then
     resize s 2;
@@ -664,18 +667,18 @@ let[@inline] possibly_resize (s : set) =
      would diverge. *)
   assert (population s < capacity s)
 
-let add (s : set) (x : element) : bool =
+let add (s : set) (x : key) : bool =
   validate x;
   let was_added = add s x (start s x) in
   if was_added then possibly_resize s;
   was_added
 
-let add_absent (s : set) (x : element) =
+let add_absent (s : set) (x : key) =
   validate x;
   add_absent s x (start s x);
   possibly_resize s
 
-let find_else_add (s : set) (x : element) =
+let find_else_add (s : set) (x : key) =
   validate x;
   try
     find_else_add s x (start s x)
@@ -683,7 +686,7 @@ let find_else_add (s : set) (x : element) =
     possibly_resize s;
     raise e
 
-let[@inline] remove (s : set) (x : element) : element =
+let[@inline] remove (s : set) (x : key) : key =
   validate x;
   remove s x (start s x)
 
@@ -691,7 +694,7 @@ let clear (s : set) =
   s.population <- 0;
   s.occupied <- 0;
   for k = 0 to capacity s - 1 do
-    A.unsafe_set s.data k void
+    A.unsafe_set s.key k void
   done
 
 let reset (s : set) =
@@ -699,30 +702,30 @@ let reset (s : set) =
   let population = 0
   and occupied = 0
   and mask = capacity - 1
-  and data = A.make capacity void in
+  and key = A.make capacity void in
   s.population <- population;
   s.occupied <- occupied;
   s.mask <- mask;
-  s.data <- data
+  s.key <- key
 
 let[@inline] cleanup (s : set) =
   (* If there are any tombstones, *)
   if s.occupied > s.population then
-    (* then copy just the live keys to a new data array. *)
+    (* then copy just the live keys to a new key array. *)
     resize s 1
 
-(* [array_copy] copies a [data] array. We could in principle use a [fill]
+(* [array_copy] copies a [key] array. We could in principle use a [fill]
    function, but the module [A] does not offer one, so we use a loop. *)
 
-let array_copy (old_data : A.t) : A.t =
-  let capacity = A.length old_data in
-  let new_data = A.make capacity void in
+let array_copy (old_key : A.t) : A.t =
+  let capacity = A.length old_key in
+  let new_key = A.make capacity void in
   for k = 0 to capacity - 1 do
-    let c = A.unsafe_get old_data k in
+    let c = A.unsafe_get old_key k in
     if c != void then
-      A.unsafe_set new_data k c
+      A.unsafe_set new_key k c
   done;
-  new_data
+  new_key
 
 (* One might ask whether [copy] should return an identical copy or
    construct a fresh hash set that does not contain any tombstones. We
@@ -730,11 +733,11 @@ let array_copy (old_data : A.t) : A.t =
    it does not require hashing. *)
 
 let copy (s : set) : set =
-  { s with data = array_copy s.data }
+  { s with key = array_copy s.key }
 
 let iter f (s : set) =
-  for i = 0 to A.length s.data - 1 do
-    let c = A.unsafe_get s.data i in
+  for i = 0 to A.length s.key - 1 do
+    let c = A.unsafe_get s.key i in
     if is_not_sentinel c then
       let x = c in
       f x
@@ -800,7 +803,7 @@ let show_histogram (h : histogram) : string =
   Printf.bprintf b "Histogram:\n";
   IntMap.iter (fun l m ->
     Printf.bprintf b
-      "  %9d elements require a linear scan of length %3d.\n"
+      "  %9d keys require a linear scan of length %3d.\n"
       m l
   ) h;
   Buffer.contents b
