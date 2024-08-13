@@ -2,6 +2,7 @@ module type ARRAY = sig
   type element
   type t
   val make : int -> element -> t
+  val copy : t -> t
   val length : t -> int
   val unsafe_get : t -> int -> element
   val unsafe_set : t -> int -> element -> unit
@@ -55,7 +56,7 @@ module type SET = sig
      to [x] is a member of the set [s]. If so, [y] is returned. Otherwise, the
      element [x] is inserted into the set [s], and [Not_found] is raised.
 
-     [find_else_add s x ] is equivalent to
+     [find_else_add s x] is equivalent to
      [try find s x with Not_found -> add_absent s x; raise Not_found]. *)
   val find_else_add : set -> element -> element
 
@@ -69,14 +70,15 @@ module type SET = sig
   (**[population s] returns the number of inhabitants of the set [s]. *)
   val population : set -> population
 
-  (**[cleanup s] cleans up the internal representation of the set by freeing
-     the space occupied by any previously removed elements. If many elements
-     have been recently removed from the set, this can free up some space
-     and delay the need to grow the set's internal data array. *)
+  (**[cleanup s] cleans up the internal representation of the set [s] by
+     freeing the space occupied by any previously removed elements. If
+     many elements have been recently removed from the set, this can free
+     up some space and delay the need to grow the set's internal data
+     array. *)
   val cleanup : set -> unit
 
   (**[clear s] empties the set [s]. The internal data array is retained,
-     and is erased. This time complexity of this operation is linear in
+     and is erased. The time complexity of this operation is linear in
      the size of the internal data array. *)
   val clear : set -> unit
 
@@ -92,9 +94,9 @@ module type SET = sig
      member of the set [s]. *)
   val iter : (element -> unit) -> set -> unit
 
-  (**[show f s] returns a textual representation of the members of
-     the set [s]. The user-supplied function [f] is used to obtain a
-     textual representation of each member. *)
+  (**[show f s] returns a textual representation of the set [s]. The
+     user-supplied function [f] is used to obtain a textual representation
+     of each element. *)
   val show : (element -> string) -> set -> string
 
   (**[statistics s] returns a string of information about the population,
@@ -124,79 +126,85 @@ module type MAP = sig
   (**[create()] creates a fresh empty map. *)
   val create : unit -> map
 
-(* TODO
-  (**[mem s x] determines whether [x], or some equivalent element, is a
-     member of the set [s]. *)
-  val mem : set -> element -> bool
+  (**[mem m x] determines whether the key [x], or some equivalent key,
+     is present in the map [m]. *)
+  val mem : map -> key -> bool
 
-  (**[find s x] determines whether some element [y] that is equivalent to
-     [x] is a member of the set [s]. If so, [y] is returned. Otherwise,
-     [Not_found] is raised. *)
-  val find : set -> element -> element
+  (**[find_key m x] determines whether some key [y] that is equivalent
+     to [x] is present in the map [m]. If so, [y] is returned.
+     Otherwise, [Not_found] is raised. *)
+  val find_key : map -> key -> key
 
-  (**If [x] or some equivalent element is a member of the set [s], then
-     [add s x] has no effect and returns [false]. Otherwise, [add s x]
-     inserts the element [x] into the set [s] and returns [true]. *)
-  val add : set -> element -> bool
+  (**[find_value m x] determines whether some key [y] that is equivalent
+     to [x] is present with value [v] in the map [m]. If so, [v] is
+     returned. Otherwise, [Not_found] is raised. *)
+  val find_value : map -> key -> value
 
-  (**[add_absent s x] inserts the element [x] into the set [s]. [x], or
-     some equivalent element, must not already be a member of [s]. No
-     result is returned. *)
-  val add_absent : set -> element -> unit
+  (**If [x] or some equivalent element is present in the map [m], then
+     [add m x v] has no effect and returns [false]. Otherwise, [add m x v]
+     inserts the key [x] with value [v] into the map [m] and returns
+     [true]. *)
+  val add : map -> key -> value -> bool
 
-  (**[find_else_add s x] determines whether some element [y] that is equivalent
-     to [x] is a member of the set [s]. If so, [y] is returned. Otherwise, the
-     element [x] is inserted into the set [s], and [Not_found] is raised.
+  (**[add_absent m x v] inserts the key [x] with value [v] into the map
+     [m]. [x], or some equivalent key, must not already be present in [m].
+     No result is returned. *)
+  val add_absent : map -> key -> value -> unit
 
-     [find_else_add s x ] is equivalent to
-     [try find s x with Not_found -> add_absent s x; raise Not_found]. *)
-  val find_else_add : set -> element -> element
+  (**[find_key_else_add m x] determines whether some key [y] that is
+     equivalent to [x] is present in the map [m]. If so, [y] is returned.
+     Otherwise, the key [x] with value [v] is inserted into the map [m],
+     and [Not_found] is raised.
 
-  (**If some element [y] that is equivalent to [x] is a member of the set
-     [s], then [remove s x] removes [y] from the set [s] and returns
+     [find_key_else_add m x v] is equivalent to
+     [try find_key m x v with Not_found -> add_absent m x v; raise Not_found]. *)
+  val find_key_else_add : map -> key -> value -> key
+
+  (**If some key [y] that is equivalent to [x] is present in the map
+     [m], then [remove m x] removes [y] from the map [m] and returns
      [y]. Otherwise, this call has no effect and raises [Not_found]. *)
-  val remove : set -> element -> element
+  val remove : map -> key -> key
 
   type population = int
 
-  (**[population s] returns the number of inhabitants of the set [s]. *)
-  val population : set -> population
+  (**[population m] returns the number of inhabitants of the map [m]. *)
+  val population : map -> population
 
-  (**[cleanup s] cleans up the internal representation of the set by freeing
-     the space occupied by any previously removed elements. If many elements
-     have been recently removed from the set, this can free up some space
-     and delay the need to grow the set's internal data array. *)
-  val cleanup : set -> unit
+  (**[cleanup m] cleans up the internal representation of the map [m] by
+     freeing the space occupied by any previously removed keys. If many
+     keys have been recently removed, this can free up some space and
+     delay the need to grow the map's internal data arrays. *)
+  val cleanup : map -> unit
 
-  (**[clear s] empties the set [s]. The internal data array is retained,
-     and is erased. This time complexity of this operation is linear in
-     the size of the internal data array. *)
-  val clear : set -> unit
+  (**[clear m] empties the map [m]. The internal data arrays are retained,
+     and are erased. The time complexity of this operation is linear in
+     the size of the internal data arrays. *)
+  val clear : map -> unit
 
-  (**[reset s] empties the set [s]. The internal data array is abandoned.
+  (**[reset m] empties the map [m]. The internal data arrays are abandoned.
      The time complexity of this operation is constant. *)
-  val reset : set -> unit
+  val reset : map -> unit
 
-  (**[copy s] returns a new set whose elements are the elements of [s].
-     Its time complexity is linear in the size of the internal data array. *)
-  val copy : set -> set
+  (**[copy m] returns a new map whose key-value bindings are those of [m].
+     Its time complexity is linear in the size of the internal data arrays. *)
+  val copy : map -> map
 
-  (**[iter f s] applies the user-supplied function [f] in turn to each
-     member of the set [s]. *)
-  val iter : (element -> unit) -> set -> unit
+  (**[iter f m] applies the user-supplied function [f] in turn to each
+     key that is present in the map [m]. *)
+  val iter : (key -> unit) -> map -> unit
 
-  (**[show f s] returns a textual representation of the members of
-     the set [s]. The user-supplied function [f] is used to obtain a
-     textual representation of each member. *)
-  val show : (element -> string) -> set -> string
+  (**[show f m] returns a textual representation of the map [m]. The
+     user-supplied function [f] is used to obtain a textual representation
+     of each key. *)
+  val show : (key -> string) -> map -> string
 
-  (**[statistics s] returns a string of information about the population,
-     capacity and occupancy of the set [s]. *)
-  val statistics : set -> string
+  (**[statistics m] returns a string of information about the population,
+     capacity and occupancy of the map [m]. *)
+  val statistics : map -> string
 
   (**/**)
-  (* In debug builds, [check s] checks that the set's internal invariant
-     holds. In release builds, [check s] has no effect. *)
-  val check : set -> unit
-END TODO *)
+  (* In debug builds, [check m] checks that the map's internal invariant
+     holds. In release builds, [check m] has no effect. *)
+  val check : map -> unit
+
 end

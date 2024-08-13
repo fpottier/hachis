@@ -24,7 +24,7 @@ module[@inline] Make
 (S : SENTINELS with type t = K.element)
 (H : HashedType with type t = K.element)
 #ifdef MAP
-(V : ARRAY)
+(V : sig include ARRAY val empty : t end)
 #endif
 = struct
 open H
@@ -32,6 +32,26 @@ open S
 
 type key =
   K.element
+
+#ifdef MAP
+type value =
+  V.element
+#endif
+
+(* [ov] stands for nothing if the table is a set,
+    and stands for [v] if the table is a map. *)
+
+(* [ovalue] stands for nothing if the table is a set,
+   and stands for [value] if the table is a map. *)
+
+#ifdef SET
+#define ov
+#define ovalue
+#endif
+#ifdef MAP
+#define ov (v : value)
+#define ovalue value
+#endif
 
 (* Although [equal] is traditionally named [equal], it is really
    an equivalence test. We rename it to [equiv] internally. *)
@@ -98,6 +118,12 @@ type table = {
   mutable mask       : int;
   (* The key array. The length of this array is a power of two. *)
   mutable key        : K.t;
+  #ifdef MAP
+  (* The value array. If [occupied] is nonzero, then the key array and
+     the value array have equal lengths. Otherwise, the value array can
+     have zero length. (It is lazily allocated.) *)
+  mutable value      : V.t;
+  #endif
 }
 
 (* A hash code is an arbitrary integer. *)
@@ -206,6 +232,9 @@ let check s =
     done;
     assert (s.population = !pop);
     assert (s.occupied = !occ);
+    #ifdef MAP
+    assert (s.occupied = 0 || V.length s.value = capacity);
+    #endif
     true
   end
 
@@ -276,10 +305,10 @@ let rec mem (s : table) (x : key) (j : int) : bool =
        otherwise, skip this slot and continue searching. *)
     equiv x y || mem s x (next s j)
 
-(* [find] is analogous to [mem], but returns the key [y] that is found,
+(* [find_key] is analogous to [mem], but returns the key [y] that is found,
    and raises an exception if no key that is equivalent to [x] is found. *)
 
-let rec find (s : table) (x : key) (j : int) : key =
+let rec find_key (s : table) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
@@ -288,12 +317,35 @@ let rec find (s : table) (x : key) (j : int) : key =
     raise Not_found
   else if c == tomb then
     (* [x] might be in the table beyond this tombstone. *)
-    find s x (next s j)
+    find_key s x (next s j)
   else
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
-    if equiv x y then y else find s x (next s j)
+    if equiv x y then y else find_key s x (next s j)
+
+#ifdef MAP
+
+(* [find_value] is analogous to [find_key], but returns the value associated
+   with the key [y], instead of the key [y] itself. *)
+
+let rec find_value (s : table) (x : key) (j : int) : value =
+  assert (is_not_sentinel x);
+  assert (is_index s j);
+  let c = K.unsafe_get s.key j in
+  if c == void then
+    (* [x] is not in the table. *)
+    raise Not_found
+  else if c == tomb then
+    (* [x] might be in the table beyond this tombstone. *)
+    find_value s x (next s j)
+  else
+    let y = c in
+    (* If [x] and [y] are equivalent, then we have found [y];
+       otherwise, skip this slot and continue searching. *)
+    if equiv x y then V.unsafe_get s.value j else find_value s x (next s j)
+
+#endif
 
 (* [length] is analogous to [mem], but measures the length of the linear
    scan that is required to find [x]. It is used by [statistics]. *)
@@ -328,6 +380,8 @@ let rec length (s : table) (x : key) (j : int) (accu : int) : int =
 
 (* [s.occupied] is decreased by the number of [void] slots that we create. *)
 
+(* The [value] array is unaffected. We tolerate garbage in it. *)
+
 let zap s j v =
   assert (is_index s j);
   assert (is_not_sentinel (K.unsafe_get s.key j));
@@ -356,6 +410,8 @@ let zap s j v =
   end;
   v
 
+(* The [value] array is unaffected. We tolerate garbage in it. *)
+
 (* -------------------------------------------------------------------------- *)
 
 (* Deletion: [remove]. *)
@@ -365,6 +421,8 @@ let zap s j v =
 (* The Boolean result indicates whether [x] was found and removed. *)
 
 (* The fields [s.population] and [s.occupied] are updated. *)
+
+(* The [value] array is unaffected. We tolerate garbage in it. *)
 
 let rec remove (s : table) (x : key) (j : int) : key =
   assert (is_not_sentinel x);
@@ -398,13 +456,21 @@ let rec remove (s : table) (x : key) (j : int) : key =
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec add (s : table) (x : key) (j : int) : bool =
+(* If the table is a map, then the user supplies a value [v]
+   in addition to the key [x], and this value is written to
+   the [value] array. *)
+
+let rec add (s : table) (x : key) ov (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the table, and can be inserted here. *)
     K.unsafe_set s.key j x;
+    #ifdef MAP
+    (* TODO lazily allocate [value] array, if necessary *)
+    V.unsafe_set s.value j v;
+    #endif
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
     true
@@ -414,7 +480,7 @@ let rec add (s : table) (x : key) (j : int) : bool =
        Search for it, and if we do not find it, then insert it
        here, at index [j]. *)
     let t = j in
-    add_at_tombstone s x t (next s j)
+    add_at_tombstone s x ov t (next s j)
   else begin
     let y = c in
     if equiv x y then
@@ -422,7 +488,7 @@ let rec add (s : table) (x : key) (j : int) : bool =
       false
     else
       (* Skip this slot and continue searching. *)
-      add s x (next s j)
+      add s x ov (next s j)
   end
 
 (* [add_at_tombstone s x t j] searches for [x], starting from index [j].
@@ -432,7 +498,7 @@ let rec add (s : table) (x : key) (j : int) : bool =
    If [x] (or an equivalent key) is found then nothing happens
    and [false] is returned. *)
 
-and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
+and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
   assert (is_not_sentinel x);
   assert (is_index s t);
   assert (K.unsafe_get s.key t == tomb);
@@ -442,13 +508,19 @@ and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
     (* [x] is not in the table. Insert it at index [t],
        which currently contains a tombstone. *)
     K.unsafe_set s.key t x;
+    #ifdef MAP
+    (* Because we have seen a tombstone, the [value] array must have
+       been allocated already. *)
+    assert (V.length s.value = capacity s);
+    V.unsafe_set s.value t v;
+    #endif
     s.population <- s.population + 1;
       (* [s.occupied] is unchanged. *)
     true
   end
   else if c == tomb then
     (* Skip this slot and continue searching. *)
-    add_at_tombstone s x t (next s j)
+    add_at_tombstone s x ov t (next s j)
   else begin
     let y = c in
     if equiv x y then begin
@@ -458,12 +530,15 @@ and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
          for [x] or [y] will be faster. Furthermore, this can turn one or
          more occupied slots back into void slots. *)
       K.unsafe_set s.key t y;
+      #ifdef MAP
+      V.unsafe_set s.value t (V.unsafe_get s.value j);
+      #endif
       (* Zap slot [j] and return [false]. *)
       zap s j false
     end
     else
       (* Skip this slot and continue searching. *)
-      add_at_tombstone s x t (next s j)
+      add_at_tombstone s x ov t (next s j)
   end
 
 (* In [add] (above), in case [c == tomb], one might be tempted to always
@@ -483,12 +558,16 @@ and add_at_tombstone (s : table) (x : key) (t : int) (j : int) : bool =
 
 (* The fields [s.population] and [s.occupied] are updated. *)
 
-let rec add_absent (s : table) (x : key) (j : int) =
+let rec add_absent (s : table) (x : key) ov (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   if c == void then begin
     K.unsafe_set s.key j x;
+    #ifdef MAP
+    (* TODO lazily allocate [value] array, if necessary *)
+    V.unsafe_set s.value j v;
+    #endif
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1
   end
@@ -496,6 +575,9 @@ let rec add_absent (s : table) (x : key) (j : int) =
     (* Because [x] is not in the table, it can be safely inserted here,
        by overwriting this tombstone. *)
     K.unsafe_set s.key j x;
+    #ifdef MAP
+    V.unsafe_set s.value j v;
+    #endif
     s.population <- s.population + 1
     (* [s.occupied] is unchanged. *)
   end
@@ -504,24 +586,28 @@ let rec add_absent (s : table) (x : key) (j : int) =
     (* [x] is not in the table. *)
     assert (not (equiv x y));
     (* Skip this slot and continue searching. *)
-    add_absent s x (next s j)
+    add_absent s x ov (next s j)
   end
 
 (* -------------------------------------------------------------------------- *)
 
-(* Combined search and insertion: [find_else_add]. *)
+(* Combined search and insertion: [find_key_else_add]. *)
 
-(* [find_else_add] is analogous to [find], but inserts the key [x] into
-   the table, if no key that is equivalent to [x] is found, before raising
-   an exception. It is a combination of [find] and [add]. *)
+(* [find_key_else_add] is analogous to [find_key], but inserts the key [x]
+   into the table, if no key that is equivalent to [x] is found, before
+   raising an exception. It is a combination of [find_key] and [add]. *)
 
-let rec find_else_add (s : table) (x : key) (j : int) : key =
+let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   if c == void then begin
     (* [x] is not in the table. Insert it, then raise an exception. *)
     K.unsafe_set s.key j x;
+    #ifdef MAP
+    (* TODO lazily allocate [value] array, if necessary *)
+    V.unsafe_set s.value j v;
+    #endif
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
     raise Not_found
@@ -529,21 +615,21 @@ let rec find_else_add (s : table) (x : key) (j : int) : key =
   else if c == tomb then
     (* [x] might be in the table beyond this tombstone. *)
     let t = j in
-    find_else_add_at_tombstone s x t j
+    find_key_else_add_at_tombstone s x ov t j
   else begin
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
-    if equiv x y then y else find_else_add s x (next s j)
+    if equiv x y then y else find_key_else_add s x ov (next s j)
   end
 
-(* [find_else_add_at_tombstone s x t j] searches for [x], starting from [j].
+(* [find_key_else_add_at_tombstone s x ov t j] searches for [x], starting from [j].
    [t] must be the index of a tombstone.
-   If [x] is not found then [x] is inserted at index [t],
+   If [x] is not found then the key [x] inserted at index [t] with value [ov],
    and [Not_found] is raised.
    If [x] (or an equivalent key) is found then nothing happens. *)
 
-and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
+and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : key =
   assert (is_not_sentinel x);
   assert (is_index s t);
   assert (K.unsafe_get s.key t == tomb);
@@ -554,13 +640,17 @@ and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
        which currently contains a tombstone,
        then raise an exception. *)
     K.unsafe_set s.key t x;
+    #ifdef MAP
+    (* TODO lazily allocate [value] array, if necessary *)
+    V.unsafe_set s.value t v;
+    #endif
     s.population <- s.population + 1;
     (* [s.occupied] is unchanged. *)
     raise Not_found
   end
   else if c == tomb then
     (* Skip this slot and continue searching. *)
-    find_else_add_at_tombstone s x t (next s j)
+    find_key_else_add_at_tombstone s x ov t (next s j)
   else begin
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
@@ -572,12 +662,15 @@ and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
          faster. Furthermore, this can turn one or more occupied slots back
          into void slots. *)
       K.unsafe_set s.key t y;
+      #ifdef MAP
+      V.unsafe_set s.value t (V.unsafe_get s.value j);
+      #endif
       (* Zap slot [j] and return [y]. *)
       zap s j y
     end
     else
       (* Skip this slot and continue searching. *)
-      find_else_add_at_tombstone s x t (next s j)
+      find_key_else_add_at_tombstone s x ov t (next s j)
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -592,17 +685,23 @@ and find_else_add_at_tombstone (s : table) (x : key) (t : int) (j : int) : key =
 
 (* This auxiliary function is used by [resize]. *)
 
-let rec add_absent_no_updates (s : table) (x : key) (j : int) =
+let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   assert (c != tomb);
-  if c == void then
-    K.unsafe_set s.key j x
-  else
+  if c == void then begin
+    K.unsafe_set s.key j x;
+    #ifdef MAP
+    (* TODO lazily allocate [value] array, if necessary *)
+    V.unsafe_set s.value j v;
+    #endif
+  end
+  else begin
     let y = c in
     assert (not (equiv x y));
-    add_absent_no_updates s x (next s j)
+    add_absent_no_updates s x ov (next s j)
+  end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -612,13 +711,28 @@ let rec add_absent_no_updates (s : table) (x : key) (j : int) =
 
 (* The [factor] parameter is typically 1 or 2. It must be a power of two. *)
 
+(* The [value] array is resized in a similar way. *)
+
 let resize (s : table) (factor : int) =
   assert (is_power_of_two factor);
   let old_key = s.key in
+  #ifdef MAP
+  let old_value = s.value in
+  #endif
   let old_capacity = capacity s in
   let capacity = factor * old_capacity in
   s.mask <- capacity - 1;
+  (* Resize the [key] array. *)
   s.key <- K.make capacity void;
+  (* Resize the [value] array, unless its length is zero. *)
+  #ifdef MAP
+  if V.length old_value > 0 then begin
+    assert (old_capacity > 0);
+    assert (V.length old_value = old_capacity);
+    let dummy = V.unsafe_get old_value 0 in
+    s.value <- V.make capacity dummy
+  end;
+  #endif
   (* At this point, [s] is a valid empty table, except for the [population]
      and [occupied] fields. *)
   (* Every key of the old key array must now be inserted into [s]. Each
@@ -630,7 +744,12 @@ let resize (s : table) (factor : int) =
     let c = K.unsafe_get old_key k in
     if is_not_sentinel c then
       let x = c in
-      add_absent_no_updates s x (start s x)
+      #ifdef MAP
+      assert (s.population > 0);
+      assert (V.length old_value = old_capacity);
+      let v = V.unsafe_get old_value k in
+      #endif
+      add_absent_no_updates s x ov (start s x)
   done;
   (* The population is unchanged. There are no tombstones any more,
      so [s.occupied] now coincides with [s.population]. *)
@@ -645,8 +764,12 @@ let create () =
   let population = 0
   and occupied = 0
   and mask = capacity - 1
-  and key = K.make capacity void in
-  { population; occupied; mask; key }
+  and key = K.make capacity void
+  #ifdef MAP
+  and value = V.empty
+  #endif
+  in
+  { population; occupied; mask; key; ovalue }
 
 let[@inline] validate (x : key) =
   assert (is_not_sentinel x)
@@ -658,12 +781,20 @@ let[@inline] mem (s : table) (x : key) : bool =
   validate x;
   mem s x (start s x)
 
-let[@inline] find (s : table) (x : key) : key =
+let[@inline] find_key (s : table) (x : key) : key =
   validate x;
-  find s x (start s x)
+  find_key s x (start s x)
+
+#ifdef MAP
+
+let[@inline] find_value (s : table) (x : key) : value =
+  validate x;
+  find_value s x (start s x)
+
+#endif
 
 let[@inline] length (s : table) (x : key) : int =
-  validate x;
+  (* No need to validate [x]; this function is private. *)
   length s x (start s x) 0
 
 let[@inline] possibly_resize (s : table) =
@@ -675,21 +806,21 @@ let[@inline] possibly_resize (s : table) =
      would diverge. *)
   assert (population s < capacity s)
 
-let add (s : table) (x : key) : bool =
+let add (s : table) (x : key) ov : bool =
   validate x;
-  let was_added = add s x (start s x) in
+  let was_added = add s x ov (start s x) in
   if was_added then possibly_resize s;
   was_added
 
-let add_absent (s : table) (x : key) =
+let add_absent (s : table) (x : key) ov =
   validate x;
-  add_absent s x (start s x);
+  add_absent s x ov (start s x);
   possibly_resize s
 
-let find_else_add (s : table) (x : key) =
+let find_key_else_add (s : table) (x : key) ov =
   validate x;
   try
-    find_else_add s x (start s x)
+    find_key_else_add s x ov (start s x)
   with Not_found as e ->
     possibly_resize s;
     raise e
@@ -704,6 +835,7 @@ let clear (s : table) =
   for k = 0 to capacity s - 1 do
     K.unsafe_set s.key k void
   done
+  (* The [value] array is unaffected. We tolerate garbage in it. *)
 
 let reset (s : table) =
   let capacity = initial_capacity in
@@ -714,7 +846,11 @@ let reset (s : table) =
   s.population <- population;
   s.occupied <- occupied;
   s.mask <- mask;
-  s.key <- key
+  s.key <- key;
+  #ifdef MAP
+  s.value <- V.empty;
+  #endif
+  ()
 
 let[@inline] cleanup (s : table) =
   (* If there are any tombstones, *)
@@ -722,27 +858,20 @@ let[@inline] cleanup (s : table) =
     (* then copy just the live keys to a new key array. *)
     resize s 1
 
-(* [array_copy] copies a [key] array. We could in principle use a [fill]
-   function, but the module [A] does not offer one, so we use a loop. *)
-
-let array_copy (old_key : K.t) : K.t =
-  let capacity = K.length old_key in
-  let new_key = K.make capacity void in
-  for k = 0 to capacity - 1 do
-    let c = K.unsafe_get old_key k in
-    if c != void then
-      K.unsafe_set new_key k c
-  done;
-  new_key
-
 (* One might ask whether [copy] should return an identical copy or
    construct a fresh hash set that does not contain any tombstones. We
    choose the first option, because it is simpler and more efficient;
    it does not require hashing. *)
 
 let copy (s : table) : table =
-  { s with key = array_copy s.key }
+  { s with
+    key = K.copy s.key
+  #ifdef MAP
+  ; value = V.copy s.value
+  #endif
+  }
 
+(* TODO update [iter], distinguish [foreach_key] and [foreach_key_value] *)
 let iter f (s : table) =
   for i = 0 to K.length s.key - 1 do
     let c = K.unsafe_get s.key i in
@@ -761,6 +890,7 @@ let separated iter show sep v =
   ) v;
   Buffer.contents b
 
+(* TODO update [show] to show values, too, if present *)
 let show show (s : table) =
   "{" ^
   separated iter show ", " s ^
@@ -821,23 +951,26 @@ let statistics (s : table) : string =
     (population s) (s.occupied - population s) (capacity s) (occupancy s)
   ^ show_histogram (histogram s)
 
-(* For sets only. *)
+(* -------------------------------------------------------------------------- *)
+
+(* Final packaging. *)
 
 #ifdef SET
 type element = key
 type set = table
+let find = find_key
+let find_else_add = find_key_else_add
 #endif
 
 #ifdef MAP
 type map = table
-type value = V.element
 #endif
 
 (* TODO *)
 #ifdef MAP
 let () =
-  ignore (check, mem, find, add, add_absent, find_else_add,
-          remove, clear, reset, cleanup, copy, show, statistics)
+  ignore (check,
+          clear, reset, cleanup, copy, show, statistics)
 #endif
 
 end

@@ -15,5 +15,5 @@ module Make
 (K : ARRAY)
 (_ : SENTINELS with type t = K.element)
 (_ : HashedType with type t = K.element)
-(V : ARRAY)
+(V : sig include ARRAY val empty : t end)
 : MAP with type key = K.element and type value = V.element
