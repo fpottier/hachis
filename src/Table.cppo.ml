@@ -280,6 +280,24 @@ let[@inline] crowded s =
 
 (* -------------------------------------------------------------------------- *)
 
+(* The value array is lazily allocated. *)
+
+#ifdef MAP
+
+let[@inline] value_array_must_be_allocated s =
+  assert (V.length s.value = capacity s)
+
+let[@inline] allocate_value_array s (dummy : value) =
+  s.value <- V.make (capacity s) dummy
+
+let[@inline] possibly_allocate_value_array s (dummy : value) =
+  if V.length s.value = 0 then
+    allocate_value_array s dummy
+
+#endif
+
+(* -------------------------------------------------------------------------- *)
+
 (* Membership tests: [mem] and [find]. *)
 
 (* We search for a key [x] in order to determine whether [x] (or some key
@@ -468,7 +486,7 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
     (* [x] is not in the table, and can be inserted here. *)
     K.unsafe_set s.key j x;
     #ifdef MAP
-    (* TODO lazily allocate [value] array, if necessary *)
+    possibly_allocate_value_array s v;
     V.unsafe_set s.value j v;
     #endif
     s.population <- s.population + 1;
@@ -511,7 +529,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
     #ifdef MAP
     (* Because we have seen a tombstone, the [value] array must have
        been allocated already. *)
-    assert (V.length s.value = capacity s);
+    value_array_must_be_allocated s;
     V.unsafe_set s.value t v;
     #endif
     s.population <- s.population + 1;
@@ -565,7 +583,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
   if c == void then begin
     K.unsafe_set s.key j x;
     #ifdef MAP
-    (* TODO lazily allocate [value] array, if necessary *)
+    possibly_allocate_value_array s v;
     V.unsafe_set s.value j v;
     #endif
     s.population <- s.population + 1;
@@ -605,7 +623,7 @@ let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
     (* [x] is not in the table. Insert it, then raise an exception. *)
     K.unsafe_set s.key j x;
     #ifdef MAP
-    (* TODO lazily allocate [value] array, if necessary *)
+    possibly_allocate_value_array s v;
     V.unsafe_set s.value j v;
     #endif
     s.population <- s.population + 1;
@@ -641,7 +659,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
        then raise an exception. *)
     K.unsafe_set s.key t x;
     #ifdef MAP
-    (* TODO lazily allocate [value] array, if necessary *)
+    possibly_allocate_value_array s v;
     V.unsafe_set s.value t v;
     #endif
     s.population <- s.population + 1;
@@ -693,7 +711,7 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   if c == void then begin
     K.unsafe_set s.key j x;
     #ifdef MAP
-    (* TODO lazily allocate [value] array, if necessary *)
+    possibly_allocate_value_array s v;
     V.unsafe_set s.value j v;
     #endif
   end
@@ -730,7 +748,7 @@ let resize (s : table) (factor : int) =
     assert (old_capacity > 0);
     assert (V.length old_value = old_capacity);
     let dummy = V.unsafe_get old_value 0 in
-    s.value <- V.make capacity dummy
+    allocate_value_array s dummy
   end;
   #endif
   (* At this point, [s] is a valid empty table, except for the [population]
