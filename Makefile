@@ -26,9 +26,7 @@ clean:
 
 .PHONY: test
 test:
-	@ make clean
-	@ dune build @all
-	@ make -C test/HashSet random
+	@ make -C test test
 
 .PHONY: bench
 bench:
