@@ -191,7 +191,7 @@ module type MAP = sig
 
   (**[iter f m] applies the user-supplied function [f] in turn to each
      key that is present in the map [m]. *)
-  val iter : (key -> unit) -> map -> unit
+  val iter : (key -> value -> unit) -> map -> unit
 
   (**[show f m] returns a textual representation of the map [m]. The
      user-supplied function [f] is used to obtain a textual representation

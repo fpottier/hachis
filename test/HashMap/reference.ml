@@ -88,7 +88,7 @@ end)
   let copy =
     H.copy
 
-  let iter f m =
-    H.iter (fun x _ -> f x) m
+  let iter =
+    H.iter
 
 end

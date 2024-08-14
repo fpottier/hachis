@@ -897,14 +897,28 @@ let copy (s : table) : table =
   #endif
   }
 
-(* TODO update [iter], distinguish [foreach_key] and [foreach_key_value] *)
-let iter f (s : table) =
-  for i = 0 to K.length s.key - 1 do
-    let c = K.unsafe_get s.key i in
-    if is_not_sentinel c then
-      let x = c in
-      f x
-  done
+let foreach_key f (s : table) =
+  if s.population > 0 then
+    for i = 0 to K.length s.key - 1 do
+      let c = K.unsafe_get s.key i in
+      if is_not_sentinel c then
+        let x = c in
+        f x
+    done
+
+#ifdef MAP
+
+let foreach_key_value f (s : table) =
+  if s.population > 0 then
+    for i = 0 to K.length s.key - 1 do
+      let c = K.unsafe_get s.key i in
+      if is_not_sentinel c then
+        let x = c in
+        let v = V.unsafe_get s.value i in
+        f x v
+    done
+
+#endif
 
 let separated iter show sep v =
   let b = Buffer.create 32 in
@@ -919,7 +933,7 @@ let separated iter show sep v =
 (* TODO update [show] to show values, too, if present *)
 let show show (s : table) =
   "{" ^
-  separated iter show ", " s ^
+  separated foreach_key show ", " s ^
   "}"
 
 (* -------------------------------------------------------------------------- *)
@@ -945,7 +959,7 @@ let insert l (h : histogram) : histogram =
 
 let histogram (s : table) : histogram =
   let h = ref IntMap.empty in
-  iter (fun x ->
+  foreach_key (fun x ->
     (* Measure the length [l] of the search for [x]. *)
     let l = length s x in
     (* Increment the multiplicity of [l] in the histogram. *)
@@ -986,17 +1000,12 @@ type element = key
 type set = table
 let find = find_key
 let find_else_add = find_key_else_add
+let iter = foreach_key
 #endif
 
 #ifdef MAP
 type map = table
-#endif
-
-(* TODO *)
-#ifdef MAP
-let () =
-  ignore (check,
-          clear, reset, cleanup, copy, show, statistics)
+let iter = foreach_key_value
 #endif
 
 end

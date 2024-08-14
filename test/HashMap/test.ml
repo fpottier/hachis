@@ -83,14 +83,23 @@ let value =
 let absent (s : R.map) (x : int) : bool =
   not (R.mem s x)
 
-(* We test [iter] by converting it to an [elements] function.
+(* We test [iter] by converting it to a [bindings] function.
    This function must produce a sorted list, because the order
-   in which elements are produced is unspecified. *)
+   in which bindings are produced is unspecified. *)
 
-let elements_of_iter iter v =
-  let xs = ref [] in
-  iter (fun x -> xs := x :: !xs) v;
-  List.sort Int.compare !xs
+let bindings_of_iter iter m =
+  let xvs = ref [] in
+  iter (fun x v -> xvs := (x, v) :: !xvs) m;
+  let compare (x1, _) (x2, _) = Int.compare x1 x2 in
+  List.sort compare !xvs
+
+let () = dprintf "          \
+          let bindings_of_iter iter m =
+            let xvs = ref [] in
+            iter (fun x v -> xvs := (x, v) :: !xvs) m;
+            let compare (x1, _) (x2, _) = Int.compare x1 x2 in
+            List.sort compare !xvs
+"
 
 (* -------------------------------------------------------------------------- *)
 
@@ -137,9 +146,9 @@ let () =
   let spec = map ^> map in
   declare "copy" spec R.copy C.copy;
 
-  let spec = map ^> list key in
-  declare "elements_of_iter iter" spec
-    (elements_of_iter R.iter) (elements_of_iter C.iter);
+  let spec = map ^> list (key *** value) in
+  declare "bindings_of_iter iter" spec
+    (bindings_of_iter R.iter) (bindings_of_iter C.iter);
 
   ()
 
