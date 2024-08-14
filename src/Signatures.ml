@@ -90,8 +90,11 @@ module type SET = sig
      Its time complexity is linear in the size of the internal data array. *)
   val copy : set -> set
 
-  (**[iter f s] applies the user-supplied function [f] in turn to each
-     member of the set [s]. *)
+  (**[foreach_key f s] applies the user-supplied function [f] in turn to
+     each element [x] of the set [s]. *)
+  val foreach_key : (element -> unit) -> set -> unit
+
+  (**[iter] is a synonym for [foreach_key]. *)
   val iter : (element -> unit) -> set -> unit
 
   (**[show f s] returns a textual representation of the set [s]. The
@@ -189,8 +192,15 @@ module type MAP = sig
      Its time complexity is linear in the size of the internal data arrays. *)
   val copy : map -> map
 
-  (**[iter f m] applies the user-supplied function [f] in turn to each
-     key that is present in the map [m]. *)
+  (**[foreach_key f m] applies the user-supplied function [f] in turn to
+     each key [x] in the map [m]. *)
+  val foreach_key : (key -> unit) -> map -> unit
+
+  (**[foreach_key_value f m] applies the user-supplied function [f] in
+     turn to each pair of a key [x] and value [v] in the map [m]. *)
+  val foreach_key_value : (key -> value -> unit) -> map -> unit
+
+  (**[iter] is a synonym for [foreach_key_value]. *)
   val iter : (key -> value -> unit) -> map -> unit
 
   (**[show f m] returns a textual representation of the map [m]. The
