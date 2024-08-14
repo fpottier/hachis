@@ -361,7 +361,12 @@ let rec find_value (s : table) (x : key) (j : int) : value =
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
-    if equiv x y then V.unsafe_get s.value j else find_value s x (next s j)
+    if equiv x y then begin
+      value_array_must_be_allocated s;
+      V.unsafe_get s.value j
+    end
+    else
+      find_value s x (next s j)
 
 #endif
 
