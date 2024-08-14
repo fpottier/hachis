@@ -80,10 +80,17 @@ let absent (s : R.set) (x : int) : bool =
    This function must produce a sorted list, because the order
    in which elements are produced is unspecified. *)
 
-let elements_of_iter iter v =
+let elements_of_iter iter s =
   let xs = ref [] in
-  iter (fun x -> xs := x :: !xs) v;
+  iter (fun x -> xs := x :: !xs) s;
   List.sort Int.compare !xs
+
+let () = dprintf "          \
+          let elements_of_iter iter s =
+            let xs = ref [] in
+            iter (fun x -> xs := x :: !xs) s;
+            List.sort Int.compare !xs
+"
 
 (* -------------------------------------------------------------------------- *)
 
