@@ -554,6 +554,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
          more occupied slots back into void slots. *)
       K.unsafe_set s.key t y;
       #ifdef MAP
+      value_array_must_be_allocated s;
       V.unsafe_set s.value t (V.unsafe_get s.value j);
       #endif
       (* Zap slot [j] and return [false]. *)
@@ -599,6 +600,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
        by overwriting this tombstone. *)
     K.unsafe_set s.key j x;
     #ifdef MAP
+    value_array_must_be_allocated s;
     V.unsafe_set s.value j v;
     #endif
     s.population <- s.population + 1
@@ -686,6 +688,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
          into void slots. *)
       K.unsafe_set s.key t y;
       #ifdef MAP
+      value_array_must_be_allocated s;
       V.unsafe_set s.value t (V.unsafe_get s.value j);
       #endif
       (* Zap slot [j] and return [y]. *)
