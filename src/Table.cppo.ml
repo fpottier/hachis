@@ -284,8 +284,8 @@ let[@inline] crowded s =
 
 #ifdef MAP
 
-let[@inline] value_array_must_be_allocated s =
-  assert (V.length s.value = capacity s)
+let value_array_is_allocated s =
+  V.length s.value = capacity s
 
 let[@inline] allocate_value_array s (dummy : value) =
   s.value <- V.make (capacity s) dummy
@@ -293,6 +293,16 @@ let[@inline] allocate_value_array s (dummy : value) =
 let[@inline] possibly_allocate_value_array s (dummy : value) =
   if V.length s.value = 0 then
     allocate_value_array s dummy
+
+let[@inline] get_value (s : table) (j : index) =
+  assert (is_index s j);
+  assert (value_array_is_allocated s);
+  V.unsafe_get s.value j
+
+let[@inline] set_value (s : table) (j : index) (v : value) =
+  assert (is_index s j);
+  assert (value_array_is_allocated s);
+  V.unsafe_set s.value j v
 
 #endif
 
@@ -361,12 +371,7 @@ let rec find_value (s : table) (x : key) (j : int) : value =
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
-    if equiv x y then begin
-      value_array_must_be_allocated s;
-      V.unsafe_get s.value j
-    end
-    else
-      find_value s x (next s j)
+    if equiv x y then get_value s j else find_value s x (next s j)
 
 #endif
 
@@ -534,8 +539,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
     #ifdef MAP
     (* Because we have seen a tombstone, the [value] array must have
        been allocated already. *)
-    value_array_must_be_allocated s;
-    V.unsafe_set s.value t v;
+    set_value s t v;
     #endif
     s.population <- s.population + 1;
       (* [s.occupied] is unchanged. *)
@@ -554,8 +558,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
          more occupied slots back into void slots. *)
       K.unsafe_set s.key t y;
       #ifdef MAP
-      value_array_must_be_allocated s;
-      V.unsafe_set s.value t (V.unsafe_get s.value j);
+      set_value s t (get_value s j);
       #endif
       (* Zap slot [j] and return [false]. *)
       zap s j false
@@ -600,8 +603,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
        by overwriting this tombstone. *)
     K.unsafe_set s.key j x;
     #ifdef MAP
-    value_array_must_be_allocated s;
-    V.unsafe_set s.value j v;
+    set_value s j v;
     #endif
     s.population <- s.population + 1
     (* [s.occupied] is unchanged. *)
@@ -688,8 +690,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
          into void slots. *)
       K.unsafe_set s.key t y;
       #ifdef MAP
-      value_array_must_be_allocated s;
-      V.unsafe_set s.value t (V.unsafe_get s.value j);
+      set_value s t (get_value s j);
       #endif
       (* Zap slot [j] and return [y]. *)
       zap s j y
@@ -914,7 +915,7 @@ let foreach_key_value f (s : table) =
       let c = K.unsafe_get s.key i in
       if is_not_sentinel c then
         let x = c in
-        let v = V.unsafe_get s.value i in
+        let v = get_value s i in
         f x v
     done
 
