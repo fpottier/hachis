@@ -304,6 +304,11 @@ let[@inline] set_value (s : table) (j : index) (v : value) =
   assert (value_array_is_allocated s);
   V.unsafe_set s.value j v
 
+let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
+  let dummy = v in
+  possibly_allocate_value_array s dummy;
+  set_value s j v
+
 #endif
 
 (* -------------------------------------------------------------------------- *)
@@ -496,8 +501,7 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
     (* [x] is not in the table, and can be inserted here. *)
     K.unsafe_set s.key j x;
     #ifdef MAP
-    possibly_allocate_value_array s v;
-    V.unsafe_set s.value j v;
+    cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
@@ -592,8 +596,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
   if c == void then begin
     K.unsafe_set s.key j x;
     #ifdef MAP
-    possibly_allocate_value_array s v;
-    V.unsafe_set s.value j v;
+    cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1
@@ -632,8 +635,7 @@ let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
     (* [x] is not in the table. Insert it, then raise an exception. *)
     K.unsafe_set s.key j x;
     #ifdef MAP
-    possibly_allocate_value_array s v;
-    V.unsafe_set s.value j v;
+    cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
     s.occupied <- s.occupied + 1;
@@ -668,8 +670,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
        then raise an exception. *)
     K.unsafe_set s.key t x;
     #ifdef MAP
-    possibly_allocate_value_array s v;
-    V.unsafe_set s.value t v;
+    cautiously_set_value s t v;
     #endif
     s.population <- s.population + 1;
     (* [s.occupied] is unchanged. *)
@@ -720,8 +721,7 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   if c == void then begin
     K.unsafe_set s.key j x;
     #ifdef MAP
-    possibly_allocate_value_array s v;
-    V.unsafe_set s.value j v;
+    cautiously_set_value s j v;
     #endif
   end
   else begin
