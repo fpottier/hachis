@@ -38,6 +38,12 @@ type value =
   V.element
 #endif
 
+(* Although [equal] is traditionally named [equal], it is really
+   an equivalence test. We rename it to [equiv] internally. *)
+
+let equiv : key -> key -> bool =
+  equal
+
 (* [ov] stands for nothing if the table is a set,
     and stands for [v] if the table is a map. *)
 
@@ -52,12 +58,6 @@ type value =
 #define ov (v : value)
 #define ovalue value
 #endif
-
-(* Although [equal] is traditionally named [equal], it is really
-   an equivalence test. We rename it to [equiv] internally. *)
-
-let equiv : key -> key -> bool =
-  equal
 
 (* -------------------------------------------------------------------------- *)
 
@@ -113,13 +113,13 @@ type table = {
   (* The number of keys in the [key] array. *)
   mutable population : int;
   (* The number of keys and tombstones in the [key] array. *)
-  mutable occupied   : int;
+  mutable occupation : int;
   (* The capacity of the [key] array, minus one. *)
   mutable mask       : int;
   (* The key array. The length of this array is a power of two. *)
   mutable key        : K.t;
   #ifdef MAP
-  (* The value array. If [occupied] is nonzero, then the key array and
+  (* The value array. If [occupation] is nonzero, then the key array and
      the value array have equal lengths. Otherwise, the value array can
      have zero length. (It is lazily allocated.) *)
   mutable value      : V.t;
@@ -150,7 +150,7 @@ type capacity =
 
 (* Accessors. *)
 
-(* The definition of occupancy is based on [s.occupied], which counts both
+(* The definition of occupancy is based on [s.occupation], which counts both
    empty slots and tombstones. This is required to ensure that every linear
    search terminates.
 
@@ -166,7 +166,7 @@ let[@inline] capacity (s : table) : capacity =
   K.length s.key
 
 let[@inline] occupancy (s : table) : float =
-  float (s.occupied) /. float (capacity s)
+  float (s.occupation) /. float (capacity s)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -183,14 +183,14 @@ let[@inline] index (s : table) (h : hash) : index =
 let[@inline] start (s : table) (x : key) : index =
   index s (hash x)
 
-(* [next s i] increments the index [i] into the [key] array, while handling
-   wrap-around. *)
+(* [next s i] increments the index [i] into the [key] array,
+   while handling wrap-around. *)
 
 let[@inline] next (s : table) (i : index) : index =
   (i + 1) land s.mask
 
-(* [prev s i] decrements the index [i] into the [key] array, while handling
-   wrap-around. *)
+(* [prev s i] decrements the index [i] into the [key] array,
+   while handling wrap-around. *)
 
 let[@inline] prev (s : table) (i : index) : index =
   (i - 1) land s.mask
@@ -209,12 +209,18 @@ let rec is_power_of_two c =
 
 let check s =
   assert begin
+    (* The table's capacity is a power of two. *)
     let capacity = capacity s in
     assert (0 < capacity);
     assert (is_power_of_two capacity);
+    (* [s.mask] is [capacity - 1]. *)
     assert (s.mask = capacity - 1);
+    (* The table's population and occupation cannot exceed its capacity. *)
     assert (0 <= s.population && s.population <= capacity);
-    assert (0 <= s.occupied && s.occupied <= capacity);
+    assert (0 <= s.occupation && s.occupation <= capacity);
+    (* The table's population, [s.population], is the number of non-sentinel
+       slots in the [key] array. The table's occupation, [s.occupation], is
+       the number of non-void slots in the [key] array. *)
     let pop, occ = ref 0, ref 0 in
     for k = 0 to capacity - 1 do
       let content = K.unsafe_get s.key k in
@@ -231,9 +237,13 @@ let check s =
       end
     done;
     assert (s.population = !pop);
-    assert (s.occupied = !occ);
+    assert (s.occupation = !occ);
+    (* The [value] array either has length zero or has the same length
+       as the [key] array. (It is lazily allocated.) If the population
+       is nonzero then both arrays must have the same length. *)
     #ifdef MAP
-    assert (s.occupied = 0 || V.length s.value = capacity);
+    assert (V.length s.value = 0 || V.length s.value = capacity);
+    assert (    s.occupation = 0 || V.length s.value = capacity);
     #endif
     true
   end
@@ -273,7 +283,7 @@ let () =
 
 let[@inline] crowded s =
   (* The test is performed using integer arithmetic, *)
-  let result = 100 * s.occupied > max_occupancy_percent * capacity s in
+  let result = 100 * s.occupation > max_occupancy_percent * capacity s in
   (* but is equivalent to a test expressed in floating-point arithmetic: *)
   assert (result = (occupancy s > max_occupancy));
   result
@@ -411,7 +421,7 @@ let rec length (s : table) (x : key) (j : int) (accu : int) : int =
 
 (* [s.population] is not affected. *)
 
-(* [s.occupied] is decreased by the number of [void] slots that we create. *)
+(* [s.occupation] is decreased by the number of [void] slots that we create. *)
 
 (* The [value] array is unaffected. We tolerate garbage in it. *)
 
@@ -431,15 +441,15 @@ let zap s j v =
       k := prev s !k;
       count := !count + 1
     done;
-    (* [s.occupied] is decreased by the number of [void] slots
+    (* [s.occupation] is decreased by the number of [void] slots
        that we have been able to recreate. *)
-    s.occupied <- s.occupied - !count
+    s.occupation <- s.occupation - !count
   end
   else begin
     (* The next slot is not void, or we do not forbid [tomb] followed
        with [void]. Write a tombstone at index [j]. *)
     K.unsafe_set s.key j tomb
-    (* [s.occupied] is unchanged. *)
+    (* [s.occupation] is unchanged. *)
   end;
   v
 
@@ -453,7 +463,7 @@ let zap s j v =
 
 (* The Boolean result indicates whether [x] was found and removed. *)
 
-(* The fields [s.population] and [s.occupied] are updated. *)
+(* The fields [s.population] and [s.occupation] are updated. *)
 
 (* The [value] array is unaffected. We tolerate garbage in it. *)
 
@@ -487,7 +497,7 @@ let rec remove (s : table) (x : key) (j : int) : key =
 
 (* The Boolean result indicates whether [x] was inserted. *)
 
-(* The fields [s.population] and [s.occupied] are updated. *)
+(* The fields [s.population] and [s.occupation] are updated. *)
 
 (* If the table is a map, then the user supplies a value [v]
    in addition to the key [x], and this value is written to
@@ -504,7 +514,7 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
     cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
-    s.occupied <- s.occupied + 1;
+    s.occupation <- s.occupation + 1;
     true
   end
   else if c == tomb then
@@ -546,7 +556,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
     set_value s t v;
     #endif
     s.population <- s.population + 1;
-      (* [s.occupied] is unchanged. *)
+      (* [s.occupation] is unchanged. *)
     true
   end
   else if c == tomb then
@@ -587,7 +597,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
 
 (* [x] is always inserted. No Boolean result is returned. *)
 
-(* The fields [s.population] and [s.occupied] are updated. *)
+(* The fields [s.population] and [s.occupation] are updated. *)
 
 let rec add_absent (s : table) (x : key) ov (j : int) =
   assert (is_not_sentinel x);
@@ -599,7 +609,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
     cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
-    s.occupied <- s.occupied + 1
+    s.occupation <- s.occupation + 1
   end
   else if c == tomb then begin
     (* Because [x] is not in the table, it can be safely inserted here,
@@ -609,7 +619,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
     set_value s j v;
     #endif
     s.population <- s.population + 1
-    (* [s.occupied] is unchanged. *)
+    (* [s.occupation] is unchanged. *)
   end
   else begin
     let y = c in
@@ -638,7 +648,7 @@ let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
     cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
-    s.occupied <- s.occupied + 1;
+    s.occupation <- s.occupation + 1;
     raise Not_found
   end
   else if c == tomb then
@@ -673,7 +683,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
     cautiously_set_value s t v;
     #endif
     s.population <- s.population + 1;
-    (* [s.occupied] is unchanged. *)
+    (* [s.occupation] is unchanged. *)
     raise Not_found
   end
   else if c == tomb then
@@ -707,7 +717,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
 
    + we assume that [x] is not in the table;
    + we assume that there are no tombstones;
-   + the fields [s.population] and [s.occupied] are NOT updated. *)
+   + the fields [s.population] and [s.occupation] are NOT updated. *)
 
 (* [x] is always inserted. No Boolean result is returned. *)
 
@@ -761,11 +771,11 @@ let resize (s : table) (factor : int) =
   end;
   #endif
   (* At this point, [s] is a valid empty table, except for the [population]
-     and [occupied] fields. *)
+     and [occupation] fields. *)
   (* Every key of the old key array must now be inserted into [s]. Each
      insertion operation inserts a new key (one that is not already
      present), and no tombstones can be encountered. Also, the [population]
-     and [occupied] fields need not be updated. Thus, [add_absent_no_updates]
+     and [occupation] fields need not be updated. Thus, [add_absent_no_updates]
      is used. *)
   for k = 0 to old_capacity - 1 do
     let c = K.unsafe_get old_key k in
@@ -779,8 +789,8 @@ let resize (s : table) (factor : int) =
       add_absent_no_updates s x ov (start s x)
   done;
   (* The population is unchanged. There are no tombstones any more,
-     so [s.occupied] now coincides with [s.population]. *)
-  s.occupied <- s.population
+     so [s.occupation] now coincides with [s.population]. *)
+  s.occupation <- s.population
 
 (* -------------------------------------------------------------------------- *)
 
@@ -789,14 +799,14 @@ let resize (s : table) (factor : int) =
 let create () =
   let capacity = initial_capacity in
   let population = 0
-  and occupied = 0
+  and occupation = 0
   and mask = capacity - 1
   and key = K.make capacity void
   #ifdef MAP
   and value = V.empty
   #endif
   in
-  { population; occupied; mask; key; ovalue }
+  { population; occupation; mask; key; ovalue }
 
 let[@inline] validate (x : key) =
   assert (is_not_sentinel x)
@@ -858,7 +868,7 @@ let[@inline] remove (s : table) (x : key) : key =
 
 let clear (s : table) =
   s.population <- 0;
-  s.occupied <- 0;
+  s.occupation <- 0;
   for k = 0 to capacity s - 1 do
     K.unsafe_set s.key k void
   done
@@ -867,11 +877,11 @@ let clear (s : table) =
 let reset (s : table) =
   let capacity = initial_capacity in
   let population = 0
-  and occupied = 0
+  and occupation = 0
   and mask = capacity - 1
   and key = K.make capacity void in
   s.population <- population;
-  s.occupied <- occupied;
+  s.occupation <- occupation;
   s.mask <- mask;
   s.key <- key;
   #ifdef MAP
@@ -881,7 +891,7 @@ let reset (s : table) =
 
 let[@inline] cleanup (s : table) =
   (* If there are any tombstones, *)
-  if s.occupied > s.population then
+  if s.occupation > s.population then
     (* then copy just the live keys to a new key array. *)
     resize s 1
 
@@ -989,7 +999,7 @@ let show_histogram (h : histogram) : string =
 
 let statistics (s : table) : string =
   Printf.sprintf "Population: %9d\nTombstones: %9d\nCapacity  : %9d\nOccupancy : %.3f\n"
-    (population s) (s.occupied - population s) (capacity s) (occupancy s)
+    (population s) (s.occupation - population s) (capacity s) (occupancy s)
   ^ show_histogram (histogram s)
 
 (* -------------------------------------------------------------------------- *)
