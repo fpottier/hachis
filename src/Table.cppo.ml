@@ -252,41 +252,17 @@ let check s =
 
 (* Two parameters: initial capacity and maximal occupancy. *)
 
-(* To ensure that the linear search terminates, one must guarantee that there
-   is always at least one [void] slot in the [key] array. This property must
-   hold also after an insertion, as the question "should we resize?" is asked
-   after each insertion (as opposed to before each insertion).
-
-   Thus, we must guarantee that, before an insertion, there exist at least two
-   [void] slots. To guarantee this, it is sufficient to initially enforce
-   [max_occupancy + 2/initial_capacity <= 1].
-   Thereafter, the capacity of the [key] array can only grow, so
-   [max_occupancy + 2/capacity <= 1]
-   must be true as well. *)
-
 let initial_capacity =
-  16
+  8
 
 (* To avoid floating-point computations, we express [max_occupancy] as an
-   integer value, in percent. *)
-
-let max_occupancy_percent =
-  82
+   integer value, which we multiply by 1/128. *)
 
 let max_occupancy =
-  float max_occupancy_percent /. 100.0
-
-let () =
-  if not (max_occupancy +. 2.0 /. float initial_capacity <= 1.0) then
-    assert false
-    (* This assertion is kept in [release] mode. *)
+  105 (* 105/128 = 0.82 *)
 
 let[@inline] crowded s =
-  (* The test is performed using integer arithmetic, *)
-  let result = 100 * s.occupation > max_occupancy_percent * capacity s in
-  (* but is equivalent to a test expressed in floating-point arithmetic: *)
-  assert (result = (occupancy s > max_occupancy));
-  result
+  128 * s.occupation > max_occupancy * capacity s
 
 (* -------------------------------------------------------------------------- *)
 
@@ -836,8 +812,17 @@ let[@inline] length (s : table) (x : key) : int =
 
 let[@inline] possibly_resize (s : table) =
   (* If the maximum occupancy is now exceeded, then the capacity of the [key]
-     array must be increased. (It is doubled.) *)
-  if crowded s then
+     array must be increased. This is heuristic: keeping occupancy low allows
+     us to keep the expected length of a linear search low. *)
+  (* Furthermore, to ensure that every linear search terminates, one must
+     guarantee that there is always at least one [void] slot in the [key]
+     array. This is not heuristic: it is a hard requirement. *)
+  (* We could enforce both conditions at once by imposing the constraint
+     [max_occupancy + 1/capacity <= 1]. Then, the maximum occupancy check,
+     alone, would ensure the existence of at least one [void] slot. We prefer
+     to remove this constraint, at the cost of performing two tests. *)
+  if crowded s || s.occupation = capacity s then
+    (* Double the capacity of the [key] array. *)
     resize s 2;
   (* There must always remain at least one empty slot. Otherwise, searches
      would diverge. *)
