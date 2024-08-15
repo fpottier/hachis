@@ -841,7 +841,7 @@ let[@inline] possibly_resize (s : table) =
     resize s 2;
   (* There must always remain at least one empty slot. Otherwise, searches
      would diverge. *)
-  assert (population s < capacity s)
+  assert (s.occupation < capacity s)
 
 let add (s : table) (x : key) ov : bool =
   validate x;
