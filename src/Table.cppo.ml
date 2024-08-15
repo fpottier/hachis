@@ -498,7 +498,7 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
        here, at index [j]. *)
     let t = j in
     add_at_tombstone s x ov t (next s j)
-  else begin
+  else
     let y = c in
     if equiv x y then
       (* We have found [x]. It is already present in the table. *)
@@ -506,7 +506,6 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
     else
       (* Skip this slot and continue searching. *)
       add s x ov (next s j)
-  end
 
 (* [add_at_tombstone s x ov t j] searches for [x], starting from index [j].
    [t] must be the index of a tombstone.
@@ -538,7 +537,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
   else if c == tomb then
     (* Skip this slot and continue searching. *)
     add_at_tombstone s x ov t (next s j)
-  else begin
+  else
     let y = c in
     if equiv x y then begin
       (* A key [y] that is equivalent to [x] is already in the table. *)
@@ -556,7 +555,6 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
     else
       (* Skip this slot and continue searching. *)
       add_at_tombstone s x ov t (next s j)
-  end
 
 (* In [add] (above), in case [c == tomb], one might be tempted to always
    overwrite the tombstone with [x], then call a variant of [remove] to find
@@ -597,13 +595,12 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
     s.population <- s.population + 1
     (* [s.occupation] is unchanged. *)
   end
-  else begin
+  else
     let y = c in
     (* [x] is not in the table. *)
     assert (not (equiv x y));
     (* Skip this slot and continue searching. *)
     add_absent s x ov (next s j)
-  end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -631,12 +628,11 @@ let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
     (* [x] might be in the table beyond this tombstone. *)
     let t = j in
     find_key_else_add_at_tombstone s x ov t j
-  else begin
+  else
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
     if equiv x y then y else find_key_else_add s x ov (next s j)
-  end
 
 (* [find_key_else_add_at_tombstone s x ov t j] searches for [x], starting from [j].
    [t] must be the index of a tombstone.
@@ -665,7 +661,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
   else if c == tomb then
     (* Skip this slot and continue searching. *)
     find_key_else_add_at_tombstone s x ov t (next s j)
-  else begin
+  else
     let y = c in
     (* If [x] and [y] are equivalent, then we have found [y];
        otherwise, skip this slot and continue searching. *)
@@ -685,7 +681,6 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
     else
       (* Skip this slot and continue searching. *)
       find_key_else_add_at_tombstone s x ov t (next s j)
-  end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -710,11 +705,10 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
     cautiously_set_value s j v;
     #endif
   end
-  else begin
+  else
     let y = c in
     assert (not (equiv x y));
     add_absent_no_updates s x ov (next s j)
-  end
 
 (* -------------------------------------------------------------------------- *)
 
