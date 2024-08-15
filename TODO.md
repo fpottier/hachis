@@ -1,11 +1,10 @@
 # To Do
 
-* Add hash maps, while sharing code, if possible.
-  In `HashMap`, add `foreach_key`, which reads just the keys.
+* Clean up hash maps. Implement `find_value_else_add`?
+
+* Add a test of `show`, with an expected output.
 
 * Benchmark more operations.
-
-* Require the module `A` to offer `copy`?
 
 * Add a way of choosing the table's capacity and max occupancy rate
   at creation time.
@@ -26,10 +25,8 @@
 * Write documentation. Note that this data structure is sequential.
   Note that it does not protect against memory leaks.
 
-* Develop a hash map variant? (Using an additional `value` array.)
-
 * Develop a `Sentinel` module.
   `Make` extends an existing type with one fresh sentinel.
-  `MakeMany` extends an extends type with `n` fresh sentinels.
+  `MakeMany` extends a type with `n` fresh sentinels.
 
 * Release.
