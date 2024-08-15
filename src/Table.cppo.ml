@@ -271,7 +271,7 @@ let[@inline] crowded s =
 #ifdef MAP
 
 let value_array_is_allocated s =
-  V.length s.value = capacity s
+  V.length s.value > 0
 
 let[@inline] allocate_value_array s (dummy : value) =
   s.value <- V.make (capacity s) dummy
@@ -299,7 +299,7 @@ let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* Membership tests: [mem] and [find]. *)
+(* Membership tests: [mem], [find_key], [find_value]. *)
 
 (* We search for a key [x] in order to determine whether [x] (or some key
    that is equivalent to [x]) is present in the table. *)
@@ -387,8 +387,9 @@ let rec length (s : table) (x : key) (j : int) (accu : int) : int =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [zap s j v] zaps slot [j] (which must contain a key, as opposed to a
-   sentinel) and returns [v]. *)
+(* [zap s j v] zaps slot [j] and returns [v].
+
+   Slot [j] must contain a key, as opposed to a sentinel. *)
 
 (* To zap a slot means to overwrite this slot with [tomb] or [void]. *)
 
@@ -428,8 +429,6 @@ let zap s j v =
     (* [s.occupation] is unchanged. *)
   end;
   v
-
-(* The [value] array is unaffected. We tolerate garbage in it. *)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -509,9 +508,10 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
       add s x ov (next s j)
   end
 
-(* [add_at_tombstone s x t j] searches for [x], starting from index [j].
+(* [add_at_tombstone s x ov t j] searches for [x], starting from index [j].
    [t] must be the index of a tombstone.
    If [x] is not found then [x] is inserted at index [t],
+   with value [ov],
    and [true] is returned.
    If [x] (or an equivalent key) is found then nothing happens
    and [false] is returned. *)
