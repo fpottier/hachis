@@ -115,9 +115,9 @@ let adds n =
   let u = n in
   [
     SEQADD(n, "Hashtbl", H.create, H.add);
-    SEQADD(n, "FlatHashSet", O.create, O.add);
+    SEQADD(n, "HashSet", O.create, O.add);
     RANDADD(n, u, "Hashtbl", H.create, H.add);
-    RANDADD(n, u, "FlatHashSet", O.create, O.add);
+    RANDADD(n, u, "HashSet", O.create, O.add);
   ]
 
 (* -------------------------------------------------------------------------- *)
@@ -187,7 +187,7 @@ let addrems n =
   let u = n in
   [
     ADDREM(n, u, "Hashtbl", H.create, H.add, H.remove);
-    ADDREM(n, u, "FlatHashSet", O.create, O.add, O.remove);
+    ADDREM(n, u, "HashSet", O.create, O.add, O.remove);
   ]
 
 let print_addrem_histogram n =
