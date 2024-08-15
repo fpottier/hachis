@@ -910,21 +910,39 @@ let foreach_key_value f (s : table) =
 
 #endif
 
-let separated iter show sep v =
+#ifdef SET
+
+let show show_key (s : table) =
   let b = Buffer.create 32 in
+  Buffer.add_string b "{";
   let first = ref true in
-  iter (fun x ->
-    if not !first then Buffer.add_string b sep;
-    Buffer.add_string b (show x);
+  foreach_key (fun x ->
+    if not !first then Buffer.add_string b ", ";
+    Buffer.add_string b (show_key x);
     first := false
-  ) v;
+  ) s;
+  Buffer.add_string b "}";
   Buffer.contents b
 
-(* TODO update [show] to show values, too, if present *)
-let show show (s : table) =
-  "{" ^
-  separated foreach_key show ", " s ^
-  "}"
+#endif
+
+#ifdef MAP
+
+let show show_key show_value (s : table) =
+  let b = Buffer.create 32 in
+  Buffer.add_string b "{";
+  let first = ref true in
+  foreach_key_value (fun x v ->
+    if not !first then Buffer.add_string b ", ";
+    Buffer.add_string b (show_key x);
+    Buffer.add_string b " ↦ ";
+    Buffer.add_string b (show_value v);
+    first := false
+  ) s;
+  Buffer.add_string b "}";
+  Buffer.contents b
+
+#endif
 
 (* -------------------------------------------------------------------------- *)
 

@@ -97,9 +97,9 @@ module type SET = sig
   (**[iter] is a synonym for [foreach_key]. *)
   val iter : (element -> unit) -> set -> unit
 
-  (**[show f s] returns a textual representation of the set [s]. The
-     user-supplied function [f] is used to obtain a textual representation
-     of each element. *)
+  (**[show show_key s] returns a textual representation of the set
+     [s]. The user-supplied function [show_key] is used to obtain a
+     textual representation of each element. *)
   val show : (element -> string) -> set -> string
 
   (**[statistics s] returns a string of information about the population,
@@ -203,10 +203,11 @@ module type MAP = sig
   (**[iter] is a synonym for [foreach_key_value]. *)
   val iter : (key -> value -> unit) -> map -> unit
 
-  (**[show f m] returns a textual representation of the map [m]. The
-     user-supplied function [f] is used to obtain a textual representation
-     of each key. *)
-  val show : (key -> string) -> map -> string
+  (**[show show_key show_value m] returns a textual representation of
+     the map [m]. The user-supplied functions [show_key] and
+     [show_value] are used to obtain textual representations of keys
+     and values. *)
+  val show : (key -> string) -> (value -> string) -> map -> string
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)
