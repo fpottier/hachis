@@ -218,7 +218,7 @@ let print_statistics (seq : sequence) =
     | IAdd    _ -> incr add
     | IRemove _ -> incr remove
   ) seq;
-  printf "This scenario involves %d insertions and %d deletions.\n%!"
+  printf "This scenario involves %d insertions and %d deletions.\n"
     !add !remove
 
 (* [choose_scenario u (r1, r2)] randomly chooses a scenario that begins with
@@ -235,8 +235,9 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
   let seq2 = choose_sequence s u r2 in
   let max_pop = R.get_max_pop s in
   print_statistics seq2;
-  printf "The initial population is %d.\n%!" initial_pop;
-  printf "The maximum population is %d.\n%!" max_pop;
+  printf "The initial population is %d.\n" initial_pop;
+  printf "The maximum population is %d.\n" max_pop;
+  printf "\n%!";
   seq1, seq2
 
 (* -------------------------------------------------------------------------- *)
@@ -277,6 +278,7 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
    [SCENARIO]. [NAME] is the name of the benchmark itself. *)
 
 #define BENCHMARKS(NAME, SCENARIO) \
+  printf "Scenario: %s\n" NAME; \
   let name candidate = \
     sprintf "%s (n = %d, u = %d) (%s)" NAME n u candidate in \
   let scenario = SCENARIO in \
@@ -313,12 +315,20 @@ let random_insertions n u : scenario =
   and seq2 = n, (fun _ -> ITAdd Random) in
   choose_scenario u (seq1, seq2)
 
-(* Random deletions: starting with set of cardinal [2 * n], remove [n]
+(* Random deletions: starting with a set of cardinal [2 * n], remove [n]
    elements in a random order. *)
 
 let random_deletions n u : scenario =
   let seq1 = 2 * n, (fun _ -> ITAdd Absent)
   and seq2 =     n, (fun _ -> ITRemove Present) in
+  choose_scenario u (seq1, seq2)
+
+(* Random insertions and deletions: starting with a set of cardinal [n],
+   perform [n] insertions or deletions (half of each). *)
+
+let random_insertions_deletions n u : scenario =
+  let seq1 = n, (fun _ -> ITAdd Absent)
+  and seq2 = n, (fun _ -> if Random.bool() then ITAdd Absent else ITRemove Present) in
   choose_scenario u (seq1, seq2)
 
 (* -------------------------------------------------------------------------- *)
@@ -337,88 +347,10 @@ let random_deletions n : B.benchmark list =
   let u = 10 * n in
   BENCHMARKS("random deletions", random_deletions n u)
 
-(* -------------------------------------------------------------------------- *)
+let random_insertions_deletions n : B.benchmark list =
+  let u = 10 * n in
+  BENCHMARKS("random insertions and deletions ", random_insertions_deletions n u)
 
-(* TODO)
-(* Random insertions and deletions. *)
-
-(* We want more than half of the operations to be insertions,
-   because otherwise the hash set remains very small. *)
-
-let[@inline] choose_insertion () =
-  Random.int 100 < 80
-
-let addrem_data =
-  let data = ref [||] in
-  fun n u ->
-    if Array.length !data <> n then begin
-      let present = R.create()
-      and insertions = ref 0
-      and pop = ref 0
-      and maxpop = ref 0 in
-      data := Array.init n (fun _i ->
-          if R.is_empty present || choose_insertion() then begin
-            (* Insertion. *)
-            let x = Random.int u in
-            R.add present x;
-            incr insertions;
-            incr pop;
-            if !maxpop < !pop then maxpop := !pop;
-            x
-          end
-          else begin
-            (* Deletion, encoded as [-(x+1)]. *)
-            let x = R.choose present in
-            R.remove present x;
-            decr pop;
-            -(x+1)
-          end
-      );
-      printf "add/rem: %d insertions, %d deletions, max population %d\n%!"
-        !insertions (n - !insertions) !maxpop
-    end;
-    !data
-
-#define ADDREM_CORE(n, u, create, add, remove) \
-    let s = create () in \
-    for i = 0 to n-1 do \
-      let x = data.(i) in \
-      if x >= 0 then \
-        ignore (add s x) \
-      else \
-        let x = -x-1 in \
-        ignore (remove s x) \
-    done
-
-#define ADDREM(n, u, candidate, create, add, remove) \
-( \
-  let basis = n \
-  and name = sprintf "add/rem (n = %d, u = %d) (%s)" n u candidate \
-  and run () = \
-    let data = addrem_data n u in \
-    fun () -> \
-      ADDREM_CORE(n, u, create, add, remove) \
-  in \
-  B.benchmark ~name ~quota ~basis ~run \
-)
-
-let addrems n =
-  let u = n in
-  [
-    ADDREM(n, u, "Set", Set.create, Set.add, Set.remove);
-    ADDREM(n, u, "Baby.W.Set", BabyWSet.create, BabyWSet.add, BabyWSet.remove);
-    ADDREM(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add, Hashtbl.remove);
-    ADDREM(n, u, "HashSet", HashSet.create, HashSet.add, HashSet.remove);
-    ADDREM(n, u, "HashMap", HashMap.create, HashMap.add, HashMap.remove);
-  ]
-
-let print_addrem_histogram n =
-  let u = n in
-  let data = addrem_data n u in
-  ADDREM_CORE(n, u, HashSet.create, HashSet.add, HashSet.remove);
-  print_string (HashSet.statistics s);
-  flush stdout
-*)
 (* -------------------------------------------------------------------------- *)
 
 (* Read the command line. *)
@@ -428,9 +360,8 @@ let int (benchmarks : int -> B.benchmark list) : Arg.spec =
 
 let () =
   Arg.parse [
-    "--consecutive-insertions", int consecutive_insertions, " <n> Benchmark consecutive insertions";
-    "--random-deletions", int random_deletions, " <n> Benchmark random deletions";
-    "--random-insertions", int random_insertions, " <n> Benchmark random insertions";
-    (* "--addrem", Arg.Set_int addrem, " <n> Benchmark add/rem"; *)
-    (* "--addrem_histogram", Arg.Set addrem_histogram, " Show add/rem histogram"; *)
+    "--consecutive-insertions", int consecutive_insertions, "";
+    "--random-deletions", int random_deletions, "";
+    "--random-insertions", int random_insertions, "";
+    "--random-insertions-deletions", int random_insertions_deletions, "";
   ] (fun _ -> ()) "Invalid usage"

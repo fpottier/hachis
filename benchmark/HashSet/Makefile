@@ -16,9 +16,11 @@ MAIN := \
 .PHONY: bench
 bench:
 	@ mkdir -p log
-	@ echo
 	@ $(MAIN) --consecutive-insertions 2000000 2>&1 | tee log/consecutive-insertions.log
 	@ echo
 	@ $(MAIN) --random-insertions 2000000 2>&1 | tee log/random-insertions.log
 	@ echo
 	@ $(MAIN) --random-deletions 2000000 2>&1 | tee log/random-deletions.log
+	@ echo
+	@ $(MAIN) --random-insertions-deletions 2000000 2>&1 | tee log/random-insertions-deletions.log
+	@ echo
