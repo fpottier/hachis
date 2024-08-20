@@ -41,20 +41,36 @@ module A = struct
   include Array
   type element = int
   type t = element array
+  let empty = [||]
 end
 
 (* We use -1 and -2 as sentinels. Our generators must be careful not
    to produce these values. *)
 module S = struct type t = int let void = (-1) let tomb = (-2) end
 
-module O = Hachis.HashSet.Make(A)(S)(V)
+(* Instantiate Hachis.HashSet. *)
 
-module H = struct
-  open Hashtbl.Make(V)
+module HashSet = Hachis.HashSet.Make(A)(S)(V)
+
+(* Instantiate Hachis.HashMap so as to respect the HashSet API. *)
+
+module HashMap = struct
+  open Hachis.HashMap.Make(A)(S)(V)(A)
+  let create = create
+  let[@inline] add s x = add s x x
+  let remove = remove
+end
+
+(* Instantiate Stdlib.Hashtbl so as to respect the HashSet API. *)
+
+module Hashtbl = struct
+  open Stdlib.Hashtbl.Make(V)
   let[@inline] create () = create 128
   let[@inline] add s x = add s x ()
   let remove = remove
 end
+
+(* Sets of values are useful to generate benchmark scenarios. *)
 
 module VSet =
   Set.Make(V)
@@ -114,10 +130,12 @@ let randadd_data =
 let adds n =
   let u = n in
   [
-    SEQADD(n, "Hashtbl", H.create, H.add);
-    SEQADD(n, "HashSet", O.create, O.add);
-    RANDADD(n, u, "Hashtbl", H.create, H.add);
-    RANDADD(n, u, "HashSet", O.create, O.add);
+    SEQADD(n, "Hashtbl", Hashtbl.create, Hashtbl.add);
+    SEQADD(n, "HashSet", HashSet.create, HashSet.add);
+    SEQADD(n, "HashMap", HashMap.create, HashMap.add);
+    RANDADD(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add);
+    RANDADD(n, u, "HashSet", HashSet.create, HashSet.add);
+    RANDADD(n, u, "HashMap", HashMap.create, HashMap.add);
   ]
 
 (* -------------------------------------------------------------------------- *)
@@ -186,14 +204,15 @@ let addrem_data =
 let addrems n =
   let u = n in
   [
-    ADDREM(n, u, "Hashtbl", H.create, H.add, H.remove);
-    ADDREM(n, u, "HashSet", O.create, O.add, O.remove);
+    ADDREM(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add, Hashtbl.remove);
+    ADDREM(n, u, "HashSet", HashSet.create, HashSet.add, HashSet.remove);
+    ADDREM(n, u, "HashMap", HashMap.create, HashMap.add, HashMap.remove);
   ]
 
 let print_addrem_histogram n =
   let u = n in
-  ADDREM_CORE(n, u, O.create, O.add, O.remove);
-  print_string (O.statistics s);
+  ADDREM_CORE(n, u, HashSet.create, HashSet.add, HashSet.remove);
+  print_string (HashSet.statistics s);
   flush stdout
 
 (* -------------------------------------------------------------------------- *)
