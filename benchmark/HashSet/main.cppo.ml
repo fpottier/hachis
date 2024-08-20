@@ -132,6 +132,7 @@ type key =
 
 type argument =
   | Key of key (* a specific key *)
+  | Random     (* any random key *)
   | Absent     (* any currently absent key *)
   | Present    (* any currently present key *)
 
@@ -169,6 +170,8 @@ let rec choose_key (a : argument) s u : key =
   match a with
   | Key x ->
       x
+  | Random ->
+      Random.int u
   | Absent ->
       let x = Random.int u in
       if R.mem s x then
@@ -256,9 +259,8 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
    [name candidate], obeying [scenario], using the operations provided by
    the module [M]. *)
 
-#define BENCHMARK(candidate, _scenario, M) \
+#define BENCHMARK(candidate, M) \
 ( \
-  let scenario = _scenario in \
   let seq1, seq2 = scenario in \
   let basis = Array.length seq2 \
   and name = name candidate \
@@ -271,17 +273,20 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
   B.benchmark ~name ~quota ~basis ~run \
 )
 
-(* [BENCHMARKS] expands to a list of benchmarks whose name is produced by
-   the function [name], and which obey [scenario].*)
+(* [BENCHMARKS(NAME, SCENARIO)] expands to a list of benchmarks which obey
+   [SCENARIO]. [NAME] is the name of the benchmark itself. *)
 
-#define BENCHMARKS \
-[ \
-  BENCHMARK("Set", scenario, Set); \
-  BENCHMARK("Baby.W.Set", scenario, BabyWSet); \
-  BENCHMARK("Hashtbl", scenario, Hashtbl); \
-  BENCHMARK("HashSet", scenario, HashSet); \
-  BENCHMARK("HashMap", scenario, HashMap); \
-]
+#define BENCHMARKS(NAME, SCENARIO) \
+  let name candidate = \
+    sprintf "%s (n = %d, u = %d) (%s)" NAME n u candidate in \
+  let scenario = SCENARIO in \
+  [ \
+    BENCHMARK("Set", Set); \
+    BENCHMARK("Baby.W.Set", BabyWSet); \
+    BENCHMARK("Hashtbl", Hashtbl); \
+    BENCHMARK("HashSet", HashSet); \
+    BENCHMARK("HashMap", HashMap); \
+  ]
 
 (* -------------------------------------------------------------------------- *)
 
@@ -300,50 +305,41 @@ let consecutive_insertions n u : scenario =
   and seq2 = n, (fun i -> ITAdd (Key i)) in
   choose_scenario u (seq1, seq2)
 
-(* -------------------------------------------------------------------------- *)
+(* Random insertions: starting with an empty set, insert [n] random
+   integers. *)
 
-(* Random insertions. *)
+let random_insertions n u : scenario =
+  let seq1 = empty
+  and seq2 = n, (fun _ -> ITAdd Random) in
+  choose_scenario u (seq1, seq2)
 
-(* We make sure that all benchmarks use the same random data. *)
+(* Random deletions: starting with set of cardinal [2 * n], remove [n]
+   elements in a random order. *)
 
-let randadd_data =
-  let data = ref [||] in
-  fun n u ->
-    if Array.length !data <> n then
-      data := Array.init n (fun _i -> Random.int u);
-    !data
-
-#define RANDADD(n, u, candidate, create, add) \
-( \
-  let basis = n \
-  and name = sprintf "add (random data, n = %d, u = %d) (%s)" n u candidate \
-  and run () = \
-    let data = randadd_data n u in \
-    fun () -> \
-      let s = create () in \
-      for i = 0 to n-1 do \
-        let x = data.(i) in \
-        ignore (add s x) \
-      done \
-  in \
-  B.benchmark ~name ~quota ~basis ~run \
-)
-
-let adds n =
-  let u = n in
-  let name candidate = sprintf "add (consecutive data, n = %d) (%s)" n candidate in
-  let scenario = consecutive_insertions n u in
-  BENCHMARKS @
-  [
-    RANDADD(n, u, "Set", Set.create, Set.add);
-    RANDADD(n, u, "Baby.W.Set", BabyWSet.create, BabyWSet.add);
-    RANDADD(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add);
-    RANDADD(n, u, "HashSet", HashSet.create, HashSet.add);
-    RANDADD(n, u, "HashMap", HashMap.create, HashMap.add);
-  ]
+let random_deletions n u : scenario =
+  let seq1 = 2 * n, (fun _ -> ITAdd Absent)
+  and seq2 =     n, (fun _ -> ITRemove Present) in
+  choose_scenario u (seq1, seq2)
 
 (* -------------------------------------------------------------------------- *)
 
+(* Benchmarks. *)
+
+let consecutive_insertions n : B.benchmark list =
+  let u = 10 * n in
+  BENCHMARKS("consecutive insertions", consecutive_insertions n u)
+
+let random_insertions n : B.benchmark list =
+  let u = 10 * n in
+  BENCHMARKS("random insertions", random_insertions n u)
+
+let random_deletions n : B.benchmark list =
+  let u = 10 * n in
+  BENCHMARKS("random deletions", random_deletions n u)
+
+(* -------------------------------------------------------------------------- *)
+
+(* TODO)
 (* Random insertions and deletions. *)
 
 (* We want more than half of the operations to be insertions,
@@ -422,33 +418,19 @@ let print_addrem_histogram n =
   ADDREM_CORE(n, u, HashSet.create, HashSet.add, HashSet.remove);
   print_string (HashSet.statistics s);
   flush stdout
-
+*)
 (* -------------------------------------------------------------------------- *)
 
 (* Read the command line. *)
 
-let add, addrem =
-  ref 0, ref 0
-
-let addrem_histogram =
-  ref false
+let int (benchmarks : int -> B.benchmark list) : Arg.spec =
+  Arg.Int (fun n -> run (benchmarks n))
 
 let () =
   Arg.parse [
-    "--add", Arg.Set_int add, " <n> Benchmark add";
-    "--addrem", Arg.Set_int addrem, " <n> Benchmark add/rem";
-    "--addrem_histogram", Arg.Set addrem_histogram, " Show add/rem histogram";
+    "--consecutive-insertions", int consecutive_insertions, " <n> Benchmark consecutive insertions";
+    "--random-deletions", int random_deletions, " <n> Benchmark random deletions";
+    "--random-insertions", int random_insertions, " <n> Benchmark random insertions";
+    (* "--addrem", Arg.Set_int addrem, " <n> Benchmark add/rem"; *)
+    (* "--addrem_histogram", Arg.Set addrem_histogram, " Show add/rem histogram"; *)
   ] (fun _ -> ()) "Invalid usage"
-
-let possibly n (benchmarks : int -> B.benchmark list) =
-  if n > 0 then run (benchmarks n)
-
-(* -------------------------------------------------------------------------- *)
-
-(* Main. *)
-
-let () =
-  if !addrem_histogram then print_addrem_histogram !addrem;
-  possibly !add adds;
-  possibly !addrem addrems;
-  ()

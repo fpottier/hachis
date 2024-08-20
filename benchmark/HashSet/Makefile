@@ -17,6 +17,8 @@ MAIN := \
 bench:
 	@ mkdir -p log
 	@ echo
-	@ $(MAIN) --add 2000000 2>&1 | tee log/add.log
+	@ $(MAIN) --consecutive-insertions 2000000 2>&1 | tee log/consecutive-insertions.log
 	@ echo
-	@ $(MAIN) --addrem 2000000 2>&1 | tee log/addrem.log
+	@ $(MAIN) --random-insertions 2000000 2>&1 | tee log/random-insertions.log
+	@ echo
+	@ $(MAIN) --random-deletions 2000000 2>&1 | tee log/random-deletions.log
