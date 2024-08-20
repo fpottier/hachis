@@ -23,6 +23,11 @@ let () =
 
 (* -------------------------------------------------------------------------- *)
 
+(* This benchmark compares several implementations of a minimal HashSet API,
+   which (at this point) includes just [create], [add], and [remove]. *)
+
+(* -------------------------------------------------------------------------- *)
+
 (* The implementations that we wish to benchmark. *)
 
 (* We use nonnegative integer values, and equip them with an equivalence
