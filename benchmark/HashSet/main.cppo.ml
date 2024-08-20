@@ -304,7 +304,7 @@ let empty : recipe =
 
 let consecutive_insertions n u : scenario =
   let seq1 = empty
-  and seq2 = n, (fun i -> ITAdd (Key i)) in
+  and seq2 = n, (fun i -> ITAdd (Key (2 * i))) in
   choose_scenario u (seq1, seq2)
 
 (* Random insertions: starting with an empty set, insert [n] random
