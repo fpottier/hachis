@@ -252,16 +252,16 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
         ignore (remove s x) \
   done
 
-(* [BENCHMARK(name, scenario, M)] expands to
-   a benchmark whose name is [name], obeying [scenario], using
-   the operations provided by the module [M]. *)
+(* [BENCHMARK(candidate, scenario, M)] expands to a benchmark whose name is
+   [name candidate], obeying [scenario], using the operations provided by
+   the module [M]. *)
 
-#define BENCHMARK(_name, _scenario, M) \
+#define BENCHMARK(candidate, _scenario, M) \
 ( \
   let scenario = _scenario in \
   let seq1, seq2 = scenario in \
   let basis = Array.length seq2 \
-  and name = _name \
+  and name = name candidate \
   and run () = \
     let s = M.create () in \
     EXECUTE(seq1, M.add, M.remove); \
@@ -270,6 +270,18 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
   in \
   B.benchmark ~name ~quota ~basis ~run \
 )
+
+(* [BENCHMARKS] expands to a list of benchmarks whose name is produced by
+   the function [name], and which obey [scenario].*)
+
+#define BENCHMARKS \
+[ \
+  BENCHMARK("Set", scenario, Set); \
+  BENCHMARK("Baby.W.Set", scenario, BabyWSet); \
+  BENCHMARK("Hashtbl", scenario, Hashtbl); \
+  BENCHMARK("HashSet", scenario, HashSet); \
+  BENCHMARK("HashMap", scenario, HashMap); \
+]
 
 (* -------------------------------------------------------------------------- *)
 
@@ -321,13 +333,7 @@ let adds n =
   let u = n in
   let name candidate = sprintf "add (consecutive data, n = %d) (%s)" n candidate in
   let scenario = consecutive_insertions n u in
-  [
-    BENCHMARK(name "Set", scenario, Set);
-    BENCHMARK(name "Baby.W.Set", scenario, BabyWSet);
-    BENCHMARK(name "Hashtbl", scenario, Hashtbl);
-    BENCHMARK(name "HashSet", scenario, HashSet);
-    BENCHMARK(name "HashMap", scenario, HashMap);
-  ] @
+  BENCHMARKS @
   [
     RANDADD(n, u, "Set", Set.create, Set.add);
     RANDADD(n, u, "Baby.W.Set", BabyWSet.create, BabyWSet.add);
