@@ -70,10 +70,18 @@ module Hashtbl = struct
   let remove = remove
 end
 
-(* Sets of values are useful to generate benchmark scenarios. *)
+(* Instantiate Stdlib.Set so as to respect the HashSet API.
+   We use this module both as a candidate in the benchmark
+   and in the generation of benchmark scenarios. *)
 
-module VSet =
-  Set.Make(V)
+module Set = struct
+  open Set.Make(V)
+  let[@inline] create () = ref empty
+  let[@inline] add s x = (s := add x !s)
+  let[@inline] remove s x = (s := remove x !s)
+  let[@inline] is_empty s = is_empty !s
+  let[@inline] choose s = choose !s
+end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -131,9 +139,11 @@ let randadd_data =
 let adds n =
   let u = n in
   [
+    SEQADD(n, "Set", Set.create, Set.add);
     SEQADD(n, "Hashtbl", Hashtbl.create, Hashtbl.add);
     SEQADD(n, "HashSet", HashSet.create, HashSet.add);
     SEQADD(n, "HashMap", HashMap.create, HashMap.add);
+    RANDADD(n, u, "Set", Set.create, Set.add);
     RANDADD(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add);
     RANDADD(n, u, "HashSet", HashSet.create, HashSet.add);
     RANDADD(n, u, "HashMap", HashMap.create, HashMap.add);
@@ -153,15 +163,15 @@ let addrem_data =
   let data = ref [||] in
   fun n u ->
     if Array.length !data <> n then begin
-      let present = ref VSet.empty
+      let present = Set.create()
       and insertions = ref 0
       and pop = ref 0
       and maxpop = ref 0 in
       data := Array.init n (fun _i ->
-          if VSet.is_empty !present || choose_insertion() then begin
+          if Set.is_empty present || choose_insertion() then begin
             (* Insertion. *)
             let x = Random.int u in
-            present := VSet.add x !present;
+            Set.add present x;
             incr insertions;
             incr pop;
             if !maxpop < !pop then maxpop := !pop;
@@ -169,8 +179,8 @@ let addrem_data =
           end
           else begin
             (* Deletion, encoded as [-(x+1)]. *)
-            let x = VSet.choose !present in
-            present := VSet.remove x !present;
+            let x = Set.choose present in
+            Set.remove present x;
             decr pop;
             -(x+1)
           end
@@ -206,6 +216,7 @@ let addrem_data =
 let addrems n =
   let u = n in
   [
+    ADDREM(n, u, "Set", Set.create, Set.add, Set.remove);
     ADDREM(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add, Hashtbl.remove);
     ADDREM(n, u, "HashSet", HashSet.create, HashSet.add, HashSet.remove);
     ADDREM(n, u, "HashMap", HashMap.create, HashMap.add, HashMap.remove);
