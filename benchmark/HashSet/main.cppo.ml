@@ -75,17 +75,13 @@ module Hashtbl = struct
   let remove = remove
 end
 
-(* Instantiate Stdlib.Set so as to respect the HashSet API.
-   We use this module both as a candidate in the benchmark
-   and in the generation of benchmark scenarios. *)
+(* Instantiate Stdlib.Set so as to respect the HashSet API. *)
 
 module Set = struct
   open Set.Make(V)
   let[@inline] create () = ref empty
   let[@inline] add s x = (s := add x !s)
   let[@inline] remove s x = (s := remove x !s)
-  let[@inline] is_empty s = is_empty !s
-  let[@inline] choose s = choose !s
 end
 
 (* Instantiate Baby.W.Set so as to respect the HashSet API. *)
@@ -95,6 +91,35 @@ module BabyWSet = struct
   let[@inline] create () = ref empty
   let[@inline] add s x = (s := add x !s)
   let[@inline] remove s x = (s := remove x !s)
+  let[@inline] mem s x = mem x !s
+  let is_empty s = is_empty !s
+  let choose s =
+    let n = cardinal !s in
+    assert (n > 0);
+    let i = Random.int n in
+    get !s i
+end
+
+(* We use this Set module in the generation of benchmark scenarios. *)
+
+module R = struct
+  open Baby.W.Set.Make(V)
+  type t = { mutable max_pop: int; mutable now: set }
+  let create () = { max_pop = 0; now = empty }
+  let add s x =
+    s.now <- add x s.now;
+    let n = cardinal s.now in
+    if s.max_pop < n then s.max_pop <- n
+  let remove s x = (s.now <- remove x s.now)
+  let mem s x = mem x s.now
+  let is_empty s = is_empty s.now
+  let choose s =
+    let n = cardinal s.now in
+    assert (n > 0);
+    let i = Random.int n in
+    get s.now i
+  let reset_max_pop s = s.max_pop <- cardinal s.now
+  let get_max_pop s = s.max_pop
 end
 
 (* -------------------------------------------------------------------------- *)
@@ -102,6 +127,119 @@ end
 (* Each benchmark is defined as a macro (not a higher-order function)
    because we want to benchmark realistic client code, where calls to
    library functions are inlined (when possible). *)
+
+(* -------------------------------------------------------------------------- *)
+
+(* Scenario generation. *)
+
+type key =
+  V.t
+
+(* An instruction type is one of the following: [add absent], [add present],
+   [remove absent], [remove present]. *)
+
+type presence =
+  | Absent
+  | Present
+
+type itype =
+  | Add of presence
+  | Remove of presence
+
+(* A concrete instruction is [add x] or [remove x]. *)
+
+type instruction =
+  | Add of key
+  | Remove of key
+
+(* A scenario consists of two sequences of instructions.
+   The first sequence is not timed, and can be used to
+   prepare the hash set. The second sequence is timed. *)
+
+type sequence =
+  instruction array
+
+type scenario =
+  sequence * sequence
+
+(* A recipe is a pair of an integer length [n] and a
+   function of an index [i] to an instruction type. *)
+
+type recipe =
+  int * (int -> itype)
+
+(* [choose_key p s u] randomly chooses an integer value inside or
+   outside of the set [s], depending on [p]. If it must be chosen
+   outside of [s], then it is randomly drawn below [u]. *)
+
+let rec choose_key (p : presence) s u : key =
+  match p with
+  | Absent ->
+      let x = Random.int u in
+      if R.mem s x then
+        choose_key p s u (* retry *)
+      else
+        x
+  | Present ->
+      if R.is_empty s then
+        (* The request cannot be honored. Never mind. *)
+        choose_key Absent s u
+      else
+        R.choose s
+
+(* [choose_instruction s u it] randomly chooses a concrete instruction
+   that corresponds to the instruction type [it]. This choice depends
+   on the current state [s]. Furthermore, as a result of this choice,
+   [s] is updated. *)
+
+let choose_instruction s u (it : itype) : instruction =
+  match it with
+  | Add p ->
+      let x = choose_key p s u in
+      R.add s x;
+      Add x
+  | Remove p ->
+      let x = choose_key p s u in
+      R.remove s x;
+      Remove x
+
+(* [choose_sequence s u r] randomly chooses an instruction sequence
+   that obeys the recipe [r]. *)
+
+let choose_sequence s u (r : recipe) : sequence =
+  let n, (it : int -> itype) = r in
+  Array.init n @@ fun i ->
+    choose_instruction s u (it i)
+
+(* [print_statistics] prints statistics about a sequence of instructions. *)
+
+let print_statistics (seq : sequence) =
+  let add, remove = ref 0, ref 0 in
+  Array.iter (fun instruction ->
+    match instruction with
+    | Add    _ -> incr add
+    | Remove _ -> incr remove
+  ) seq;
+  printf "This scenario involves %d insertions and %d deletions.\n%!"
+    !add !remove
+
+(* [choose_scenario u (r1, r2)] randomly chooses a scenario that begins with
+   an empty set as the initial state and obeys the pair of recipes [(r1, r2)].
+   The recipe [r1] is used to generate a first sequence of instructions
+   (initialization). The recipe [r2] is used to generate a second sequence of
+   instructions (use). *)
+
+let choose_scenario s u (r1, r2 : recipe * recipe) : scenario =
+  let s = R.create() in
+  let seq1 = choose_sequence s u r1 in
+  R.reset_max_pop s;
+  let initial_pop = R.get_max_pop s in
+  let seq2 = choose_sequence s u r2 in
+  let max_pop = R.get_max_pop s in
+  print_statistics seq2;
+  printf "The initial population is %d.\n%!" initial_pop;
+  printf "The maximum population is %d.\n%!" max_pop;
+  seq1, seq2
 
 (* -------------------------------------------------------------------------- *)
 
@@ -179,15 +317,15 @@ let addrem_data =
   let data = ref [||] in
   fun n u ->
     if Array.length !data <> n then begin
-      let present = Set.create()
+      let present = R.create()
       and insertions = ref 0
       and pop = ref 0
       and maxpop = ref 0 in
       data := Array.init n (fun _i ->
-          if Set.is_empty present || choose_insertion() then begin
+          if R.is_empty present || choose_insertion() then begin
             (* Insertion. *)
             let x = Random.int u in
-            Set.add present x;
+            R.add present x;
             incr insertions;
             incr pop;
             if !maxpop < !pop then maxpop := !pop;
@@ -195,8 +333,8 @@ let addrem_data =
           end
           else begin
             (* Deletion, encoded as [-(x+1)]. *)
-            let x = Set.choose present in
-            Set.remove present x;
+            let x = R.choose present in
+            R.remove present x;
             decr pop;
             -(x+1)
           end
