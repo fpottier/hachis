@@ -83,6 +83,15 @@ module Set = struct
   let[@inline] choose s = choose !s
 end
 
+(* Instantiate Baby.W.Set so as to respect the HashSet API. *)
+
+module BabyWSet = struct
+  open Baby.W.Set.Make(V)
+  let[@inline] create () = ref empty
+  let[@inline] add s x = (s := add x !s)
+  let[@inline] remove s x = (s := remove x !s)
+end
+
 (* -------------------------------------------------------------------------- *)
 
 (* Each benchmark is defined as a macro (not a higher-order function)
@@ -140,10 +149,12 @@ let adds n =
   let u = n in
   [
     SEQADD(n, "Set", Set.create, Set.add);
+    SEQADD(n, "Baby.W.Set", BabyWSet.create, BabyWSet.add);
     SEQADD(n, "Hashtbl", Hashtbl.create, Hashtbl.add);
     SEQADD(n, "HashSet", HashSet.create, HashSet.add);
     SEQADD(n, "HashMap", HashMap.create, HashMap.add);
     RANDADD(n, u, "Set", Set.create, Set.add);
+    RANDADD(n, u, "Baby.W.Set", BabyWSet.create, BabyWSet.add);
     RANDADD(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add);
     RANDADD(n, u, "HashSet", HashSet.create, HashSet.add);
     RANDADD(n, u, "HashMap", HashMap.create, HashMap.add);
@@ -217,6 +228,7 @@ let addrems n =
   let u = n in
   [
     ADDREM(n, u, "Set", Set.create, Set.add, Set.remove);
+    ADDREM(n, u, "Baby.W.Set", BabyWSet.create, BabyWSet.add, BabyWSet.remove);
     ADDREM(n, u, "Hashtbl", Hashtbl.create, Hashtbl.add, Hashtbl.remove);
     ADDREM(n, u, "HashSet", HashSet.create, HashSet.add, HashSet.remove);
     ADDREM(n, u, "HashMap", HashMap.create, HashMap.add, HashMap.remove);

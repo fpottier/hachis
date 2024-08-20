@@ -1,6 +1,6 @@
 (executable
   (name main)
-  (libraries hachis common)
+  (libraries hachis baby common)
   (ocamlopt_flags :standard -S)
 )
 
