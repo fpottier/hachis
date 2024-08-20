@@ -116,13 +116,14 @@ let randadd_data =
 ( \
   let basis = n \
   and name = sprintf "add (random data, n = %d, u = %d) (%s)" n u candidate \
-  and run () () = \
-    let s = create () in \
+  and run () = \
     let data = randadd_data n u in \
-    for i = 0 to n-1 do \
-      let x = data.(i) in \
-      ignore (add s x) \
-    done \
+    fun () -> \
+      let s = create () in \
+      for i = 0 to n-1 do \
+        let x = data.(i) in \
+        ignore (add s x) \
+      done \
   in \
   B.benchmark ~name ~quota ~basis ~run \
 )
@@ -181,7 +182,6 @@ let addrem_data =
 
 #define ADDREM_CORE(n, u, create, add, remove) \
     let s = create () in \
-    let data = addrem_data n u in \
     for i = 0 to n-1 do \
       let x = data.(i) in \
       if x >= 0 then \
@@ -195,8 +195,10 @@ let addrem_data =
 ( \
   let basis = n \
   and name = sprintf "add/rem (n = %d, u = %d) (%s)" n u candidate \
-  and run () () = \
-    ADDREM_CORE(n, u, create, add, remove) \
+  and run () = \
+    let data = addrem_data n u in \
+    fun () -> \
+      ADDREM_CORE(n, u, create, add, remove) \
   in \
   B.benchmark ~name ~quota ~basis ~run \
 )
@@ -211,6 +213,7 @@ let addrems n =
 
 let print_addrem_histogram n =
   let u = n in
+  let data = addrem_data n u in
   ADDREM_CORE(n, u, HashSet.create, HashSet.add, HashSet.remove);
   print_string (HashSet.statistics s);
   flush stdout
