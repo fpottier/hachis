@@ -243,6 +243,45 @@ let choose_scenario s u (r1, r2 : recipe * recipe) : scenario =
 
 (* -------------------------------------------------------------------------- *)
 
+(* Scenario execution. *)
+
+(* [EXECUTE(seq, add, remove)] runs the instruction sequence [seq] on the
+   state [s] using the operations [add] and [remove]. *)
+
+#define EXECUTE(seq, add, remove) \
+  for i = 0 to Array.length seq - 1 do \
+    match Array.unsafe_get seq i with \
+    | Add x -> \
+        ignore (add s x) \
+    | Remove x -> \
+        ignore (remove s x) \
+  done
+
+(* [BENCHMARK(name, scenario, create, add, remove)] expands to
+   a benchmark whose name is [name], obeying [scenario], using
+   the operations [create], [add], [remove]. *)
+
+#define BENCHMARK(_name, _scenario, create, add, remove) \
+( \
+  let scenario = _scenario in \
+  let seq1, seq2 = scenario in \
+  let basis = Array.length seq2 \
+  and name = _name \
+  and run () = \
+    let s = create () in \
+    EXECUTE(seq1, add, remove); \
+    fun () -> \
+      EXECUTE(seq2, add, remove) \
+  in \
+  B.benchmark ~name ~quota ~basis ~run \
+)
+
+(* -------------------------------------------------------------------------- *)
+
+(* Specific (pairs of) recipes. *)
+
+(* -------------------------------------------------------------------------- *)
+
 (* Sequential insertions. *)
 
 #define SEQADD(n, candidate, create, add) \
