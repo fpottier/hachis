@@ -16,7 +16,7 @@ let run benchmarks =
   List.iter B.drive_and_display benchmarks
 
 let quota =
-  "5.0s"
+  ref "5.0s"
 
 let () =
   Random.init 42
@@ -345,6 +345,7 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
   let seq1, seq2 = scenario in \
   let basis = Array.length seq2 \
   and name = name candidate \
+  and quota = !quota \
   and run () = \
     let s = M.create () in \
     EXECUTE(seq1, M); \
@@ -495,4 +496,5 @@ let () =
     "--random-insertions-deletions", int random_insertions_deletions, "";
     "--random-lookups", int random_lookups, "";
     "--everything", int everything, "";
+    "--quota", Arg.Set_string quota, "<quota> set time quota (default: 5.0s)";
   ] (fun _ -> ()) "Invalid usage"
