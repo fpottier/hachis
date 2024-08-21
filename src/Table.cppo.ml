@@ -315,23 +315,29 @@ let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* The macro [SEARCH(SELF, ABSENT, PRESENT)] defines a search function.
+(* The macro [SEARCH(SELF, ACCU, ABSENT, PRESENT, ACCU')] defines a search
+   function.
 
    [SELF] is the name of the function.
 
    The parameters of this function are:
    - the table [s];
    - the desired key [x];
-   - the current index [j] of the search.
+   - the current index [j] of the search;
+   - the optional accumulator [ACCU].
+
+   [ACCU] is a formal parameter, and can be empty.
 
    The code [ABSENT] is executed if the key [x] is absent (not found).
 
    The code [PRESENT] is executed if a key [y] that is equivalent to
-   [x] is found. This code can refer to [y]. *)
+   [x] is found. This code can refer to [y].
 
-#def SEARCH(SELF, ABSENT, PRESENT)
+   The updated accumulator [ACCU'] is passed to the recursive calls. *)
 
-let rec SELF (s : table) (x : key) (j : int) =
+#def SEARCH(SELF, ACCU, ABSENT, PRESENT, ACCU')
+
+let rec SELF (s : table) (x : key) (j : int) ACCU =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
@@ -343,7 +349,7 @@ let rec SELF (s : table) (x : key) (j : int) =
     (* This slot is a tombstone. *)
     (* [x] might appear in the table beyond this tombstone. *)
     (* Skip this slot and continue searching. *)
-    SELF s x (next s j)
+    SELF s x (next s j) ACCU'
   else
     let y = c in
     if equiv x y then
@@ -351,49 +357,35 @@ let rec SELF (s : table) (x : key) (j : int) =
       (PRESENT)
     else
       (* Skip this slot and continue searching. *)
-      SELF s x (next s j)
+      SELF s x (next s j) ACCU'
 
 #enddef
 
 (* -------------------------------------------------------------------------- *)
 
-(* Membership tests: [mem], [find_key], [find_value]. *)
+(* Search functions: [mem], [find_key], [find_value], [length]. *)
 
 (* [mem] determines whether the key [x] (or some equivalent key) is present
    in the table. It returns a Boolean result. *)
 
-SEARCH(mem, false, true)
+SEARCH(mem,, false, true,)
 
 (* [find_key] is analogous to [mem], but returns the key [y] that is found,
    and raises an exception if no key that is equivalent to [x] is found. *)
 
-SEARCH(find_key, raise Not_found, y)
+SEARCH(find_key,, raise Not_found, y,)
 
 (* [find_value] is analogous to [find_key], but returns the value associated
    with the key [y], instead of the key [y] itself. *)
 
 #ifdef ENABLE_MAP
-SEARCH(find_value, raise Not_found, get_value s j)
+SEARCH(find_value,, raise Not_found, get_value s j,)
 #endif
 
 (* [length] is analogous to [mem], but measures the length of the linear
    scan that is required to find [x]. It is used by [statistics]. *)
 
-let rec length (s : table) (x : key) (j : int) (accu : int) : int =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then
-    (* [x] is not in the table. *)
-    accu
-  else if c == tomb then
-    (* [x] might be in the table beyond this tombstone. *)
-    length s x (next s j) (accu + 1)
-  else
-    let y = c in
-    (* If [x] and [y] are equivalent, then we have succeeded;
-       otherwise, skip this slot and continue searching. *)
-    if equiv x y then accu else length s x (next s j) (accu + 1)
+SEARCH(length, accu, accu, accu, accu + 1)
 
 (* -------------------------------------------------------------------------- *)
 
