@@ -23,8 +23,22 @@ let () =
 
 (* -------------------------------------------------------------------------- *)
 
-(* This benchmark compares several implementations of a minimal HashSet API,
-   which (at this point) includes just [create], [add], and [remove]. *)
+(* This benchmark compares several implementations of a minimal HashSet API.  *)
+
+(* In [Stdlib.Hashtbl], [add] and [remove] return a result of type [unit],
+   as opposed to [bool], so we have to adopt the same impoverished API. *)
+
+(* The semantics of [add] in this API is to replace an existing entry, if
+   there is one. *)
+
+module type API = sig
+  type element = int
+  type set
+  val create : unit -> set
+  val add : set -> element -> unit
+  val remove : set -> element -> unit
+  val mem : set -> element -> bool
+end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -55,49 +69,76 @@ module S = struct type t = int let void = (-1) let tomb = (-2) end
 
 (* Instantiate Hachis.HashSet. *)
 
-module HashSet = Hachis.HashSet.Make(A)(S)(V)
-
-(* Instantiate Hachis.HashSet using Hector.IntArray. *)
-
-module HectorHashSet = Hachis.HashSet.Make(Hector.IntArray)(S)(V)
-
-(* Instantiate Hachis.HashMap so as to respect the HashSet API. *)
-
-module HashMap = struct
-  open Hachis.HashMap.Make(A)(S)(V)(A)
-  let create = create
-  let[@inline] add s x = add s x x
-  let remove = remove
+module HashSet : API = struct
+  include Hachis.HashSet.Make(A)(S)(V)
+  let[@inline] add s x = ignore (add s x)
+  let[@inline] remove s x = ignore (remove s x)
 end
 
-(* Instantiate Stdlib.Hashtbl so as to respect the HashSet API. *)
+(* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
 
-module Hashtbl = struct
-  open Stdlib.Hashtbl.Make(V)
+module HectorHashSet : API = struct
+  include Hachis.HashSet.Make(Hector.IntArray)(S)(V)
+  let[@inline] add s x = ignore (add s x)
+  let[@inline] remove s x = ignore (remove s x)
+end
+
+(* Instantiate [Hachis.HashMap] so as to respect [API]. *)
+
+module HashMap : API = struct
+  include Hachis.HashMap.Make(A)(S)(V)(A)
+  type element = key
+  type set = map
+  let[@inline] add s x = ignore (add s x x)
+  let[@inline] remove s x = ignore (remove s x)
+end
+
+(* Instantiate [Stdlib.Hashtbl] so as to respect [API]. *)
+
+(* In [Stdlib.Hashtbl], [add] hides an existing entry, if there is
+   one, so a key can be present several times in the table. We must
+   avoid this: we must implement [add] using [replace]. *)
+
+module Hashtbl : API = struct
+  include Stdlib.Hashtbl.Make(V)
+  type element = int
+  type set = unit t
   let[@inline] create () = create 128
-  let[@inline] add s x = add s x ()
-  let remove = remove
+  let[@inline] add s x = replace s x ()
 end
 
-(* Instantiate Stdlib.Set so as to respect the HashSet API. *)
+(* Instantiate [Stdlib.Set] so as to respect [API]. *)
 
-module Set = struct
+module Set : API = struct
   open Set.Make(V)
+  type element = int
+  type set = t ref
   let[@inline] create () = ref empty
   let[@inline] add s x = (s := add x !s)
   let[@inline] remove s x = (s := remove x !s)
+  let[@inline] mem s x = mem x !s
 end
 
-(* Instantiate Baby.W.Set so as to respect the HashSet API. *)
+(* Instantiate [Baby.W.Set] so as to respect [API]. *)
 
-module BabyWSet = struct
+module BabyWSet : API = struct
   open Baby.W.Set.Make(V)
+  type element = int
+  type set = t ref
   let[@inline] create () = ref empty
   let[@inline] add s x = (s := add x !s)
   let[@inline] remove s x = (s := remove x !s)
+  let[@inline] mem s x = mem x !s
 end
 
-(* We use this Set module in the generation of benchmark scenarios. *)
+(* We use the module [R] in the generation of benchmark scenarios. *)
+
+(* It enriches the underlying set with a maximum population field.
+   [reset_max_pop] sets the maximum population field to the current
+   population. [get_max_pop] reads the maximum population field. *)
+
+(* Furthermore, [is_empty] determines whether the set is empty, and
+   [choose] picks a random element out of a nonempty set. *)
 
 module R = struct
   open Baby.W.Set.Make(V)
