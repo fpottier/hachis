@@ -9,23 +9,22 @@
   In maps, we may also wish to have `find_value_and_remove`.
   Adapt the benchmark accordingly.
 
-* Implement `find_value_else_add`?
-
-* Add a way of choosing the table's capacity and max occupancy rate
-  at creation time. (Give `Make_` an extra parameter.) Check whether
-  this degrades performance (with and without flambda).
+* Add a way of choosing a table's capacity and max occupancy rate,
+  either by giving more parameters to the functor `Make_`,
+  or by giving more parameters (with default values) to the function `create`.
+  Check whether this degrades performance (with and without flambda).
 
 * Add missing operations:
   `find_opt`,
   `replace`,
   `filter_map_inplace`,
   `fold`,
-  `length` (a synonym for `population`),
   `to_seq`, `add_seq`, `replace_seq`, `of_seq`.
 
 * Check (improve) compatibility with `Stdlib.Hashtbl`,
   either by ensuring that our API matches the `Stdlib` API,
   or by providing a submodule that emulates the `Stdlib` API.
+  E.g., need `length` as a synonym for `cardinal`.
 
 * Develop a `Sentinel` module.
   `Make` extends an existing type with one fresh sentinel.
@@ -46,5 +45,7 @@
 * Finish cleaning up the code.
 
 * Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
+
+* Declare a suitable version constraint on `cppo`.
 
 * Release.
