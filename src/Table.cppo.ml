@@ -308,6 +308,17 @@ let[@inline] set_value (s : table) (j : index) (v : value) =
 
 #endif
 
+(* When [MAP] is defined, [POSSIBLY_ALLOCATE_VALUE_ARRAY] expands to
+   [possibly_allocate_value_array s v]. Otherwise, it expands to nothing. *)
+
+#def POSSIBLY_ALLOCATE_VALUE_ARRAY
+  #ifdef ENABLE_MAP
+    possibly_allocate_value_array s v
+  #else
+    ()
+  #endif
+#enddef
+
 (* -------------------------------------------------------------------------- *)
 
 (* [zap s j] zaps slot [j].
@@ -526,10 +537,7 @@ let rec SELF (s : table) (x : key) ov (j : int) =
     (* [x] is not in the table. *)
     (* Update [s.occupation]. *)
     s.occupation <- s.occupation + 1;
-    (* Make sure that the [value] array is allocated. *)
-    #ifdef ENABLE_MAP
-    possibly_allocate_value_array s v;
-    #endif
+    POSSIBLY_ALLOCATE_VALUE_ARRAY;
     ABSENT
   end
   else if c == tomb then
@@ -593,27 +601,35 @@ and CONCAT(SELF, _aux) (s : table) (x : key) ov (t : int) (j : int) =
 
 #enddef
 
-(* The macro [ADD] inserts the key [x] and value [v] at index [j]
-   and increments [s.population]. *)
+(* -------------------------------------------------------------------------- *)
+
+(* The macro [WRITE] writes key [x] and value [v] at index [j]. *)
 
 (* It assumes that the [value] array is allocated. *)
 
-#def ADD
-  s.population <- s.population + 1;
+#def WRITE
   K.unsafe_set s.key j x
   #ifdef ENABLE_MAP
   ;set_value s j v
   #endif
 #enddef
 
+(* The macro [WRITE_AND_POPULATE] writes key [x] and value [v] at index [j]
+   and increments [s.population]. *)
+
+(* It assumes that the [value] array is allocated. *)
+
+#def WRITE_AND_POPULATE
+  s.population <- s.population + 1;
+  WRITE
+#enddef
+
 (* -------------------------------------------------------------------------- *)
 
-(* Insertion: [add]. *)
+(* Insertion. *)
 
-(* We search for a key [x] and insert it if it is absent. *)
-
+(* [add] searches for the key [x] and inserts it if it is absent. *)
 (* The Boolean result indicates whether [x] was inserted. *)
-
 (* The fields [s.population] and [s.occupation] are updated. *)
 
 (* If the table is a map, then the user supplies a value [v]
@@ -622,7 +638,7 @@ and CONCAT(SELF, _aux) (s : table) (x : key) ov (t : int) (j : int) =
 
 SEARCH2(add,
   (* If [x] is not found, it is inserted at [j], and [true] is returned. *)
-  ADD; true,
+  WRITE_AND_POPULATE; true,
   (* If [x] or an equivalent key is found, [false] is returned. *)
   ignore j; false
 )
@@ -634,17 +650,13 @@ SEARCH2(add,
    key [y] that is equivalent to [x], then [add] is expected to leave [y] in
    the table; it must not replace [y] with [x]. *)
 
-(* -------------------------------------------------------------------------- *)
-
-(* Combined search and insertion: [find_key_else_add]. *)
-
-(* [find_key_else_add] is analogous to [find_key], but inserts the key [x]
-   into the table, if no key that is equivalent to [x] is found, before
-   raising an exception. It is a combination of [find_key] and [add]. *)
+(* [find_key_else_add] searches for [x] and inserts it if it is absent. *)
+(* If [x] was absent then [Not_found] is raised after [x] is inserted. *)
+(* If a key [y] is found then [y] is returned. *)
 
 SEARCH2(find_key_else_add,
   (* If [x] is not found, it is inserted at [j], and [Not_found] is raised. *)
-  ADD; raise Not_found,
+  WRITE_AND_POPULATE; raise Not_found,
   (* If a key [y] that is equivalent to [x] is found, [y] is returned. *)
   ignore j; y
 )
@@ -664,24 +676,15 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   if c == void then begin
-    K.unsafe_set s.key j x;
-    #ifdef ENABLE_MAP
-    possibly_allocate_value_array s v;
-    set_value s j v;
-    #endif
-    s.population <- s.population + 1;
-    s.occupation <- s.occupation + 1
+    s.occupation <- s.occupation + 1;
+    POSSIBLY_ALLOCATE_VALUE_ARRAY;
+    WRITE_AND_POPULATE
   end
-  else if c == tomb then begin
+  else if c == tomb then
     (* Because [x] is not in the table, it can be safely inserted here,
        by overwriting this tombstone. *)
-    K.unsafe_set s.key j x;
-    #ifdef ENABLE_MAP
-    set_value s j v;
-    #endif
-    s.population <- s.population + 1
+    (WRITE_AND_POPULATE)
     (* [s.occupation] is unchanged. *)
-  end
   else
     let y = c in
     (* [x] is not in the table. *)
@@ -707,11 +710,8 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   let c = K.unsafe_get s.key j in
   assert (c != tomb);
   if c == void then begin
-    K.unsafe_set s.key j x;
-    #ifdef ENABLE_MAP
-    possibly_allocate_value_array s v;
-    set_value s j v;
-    #endif
+    POSSIBLY_ALLOCATE_VALUE_ARRAY;
+    WRITE
   end
   else
     let y = c in
