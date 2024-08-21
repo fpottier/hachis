@@ -13,20 +13,21 @@ MAIN := \
   --display=quiet --no-print-directory \
   ./main.exe -- \
 
+N := 2000000
+
+BENCHMARKS := \
+  consecutive-insertions \
+  random-insertions \
+  random-absent-insertions \
+  random-deletions \
+  random-insertions-deletions \
+  random-lookups \
+  everything \
+
 .PHONY: bench
 bench:
 	@ mkdir -p log
-	@ $(MAIN) --consecutive-insertions 2000000 2>&1 | tee log/consecutive-insertions.log
-	@ echo
-	@ $(MAIN) --random-insertions 2000000 2>&1 | tee log/random-insertions.log
-	@ echo
-	@ $(MAIN) --random-absent-insertions 2000000 2>&1 | tee log/random-absent-insertions.log
-	@ echo
-	@ $(MAIN) --random-deletions 2000000 2>&1 | tee log/random-deletions.log
-	@ echo
-	@ $(MAIN) --random-insertions-deletions 2000000 2>&1 | tee log/random-insertions-deletions.log
-	@ echo
-	@ $(MAIN) --random-lookups 2000000 2>&1 | tee log/random-lookups.log
-	@ echo
-	@ $(MAIN) --everything 2000000 2>&1 | tee log/everything.log
-	@ echo
+	@ for B in $(BENCHMARKS) ; do \
+	    $(MAIN) --$$B $(N) 2>&1 | tee log/$$B.log ; \
+	    echo ; \
+	  done
