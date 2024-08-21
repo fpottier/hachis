@@ -652,7 +652,9 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
        then raise an exception. *)
     K.unsafe_set s.key t x;
     #ifdef MAP
-    cautiously_set_value s t v;
+    (* Because we have seen a tombstone, the [value] array must have
+       been allocated already. *)
+    set_value s t v;
     #endif
     s.population <- s.population + 1;
     (* [s.occupation] is unchanged. *)
