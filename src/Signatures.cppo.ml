@@ -378,6 +378,15 @@ module type MAP = sig
      Time complexity: {m O(1)}. *)
   val find_key_else_add : map -> key -> value -> key
 
+  (**[find_value_else_add m x] determines whether some key [y] that is
+     equivalent to [x] is present in the map [m] with value [v]. If
+     so, [v] is returned. Otherwise, the key [x] with value [v] is
+     inserted into the map [m], and [Not_found] is raised.
+
+     [find_value_else_add m x v] is equivalent to
+     [try find_value m x v with Not_found -> add_absent m x v; raise Not_found]. *)
+  val find_value_else_add : map -> key -> value -> value
+
   (** {2 Deletion} *)
 
   (**If some key [y] that is equivalent to [x] is present in the map

@@ -661,6 +661,22 @@ SEARCH2(find_key_else_add,
   ignore j; y
 )
 
+(* [find_value_else_add] searches for [x] and inserts it if it is absent. *)
+(* If [x] was absent then [Not_found] is raised after [x] is inserted. *)
+(* If a key is found then the corresponding value is returned. *)
+
+#ifdef ENABLE_MAP
+
+SEARCH2(find_value_else_add,
+  (* If [x] is not found, it is inserted at [j], and [Not_found] is raised. *)
+  WRITE_AND_POPULATE; raise Not_found,
+  (* If a key [y] that is equivalent to [x] is found, then the value
+     associated with [y] is returned. *)
+  get_value s j
+)
+
+#endif
+
 (* -------------------------------------------------------------------------- *)
 
 (* Insertion: [add_absent]. *)
@@ -1008,6 +1024,18 @@ let find_key_else_add (s : table) (x : key) ov =
   with Not_found as e ->
     possibly_grow s;
     raise e
+
+#ifdef ENABLE_MAP
+
+let find_value_else_add (s : table) (x : key) v =
+  validate x;
+  try
+    find_value_else_add s x v (start s x)
+  with Not_found as e ->
+    possibly_grow s;
+    raise e
+
+#endif
 
 let[@inline] remove (s : table) (x : key) : key =
   validate x;

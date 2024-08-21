@@ -69,6 +69,13 @@ end)
       add_absent m x v;
       raise Not_found
 
+  let find_value_else_add m x v =
+    try
+      find_value m x
+    with Not_found ->
+      add_absent m x v;
+      raise Not_found
+
   let remove m x =
     let y = find_key m x in
     H.remove m x;

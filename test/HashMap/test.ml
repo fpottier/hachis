@@ -115,6 +115,9 @@ let () =
   let spec = map ^> key ^> value ^!> key in
   declare "find_key_else_add" spec R.find_key_else_add C.find_key_else_add;
 
+  let spec = map ^> key ^> value ^!> value in
+  declare "find_value_else_add" spec R.find_value_else_add C.find_value_else_add;
+
   let spec = map ^> key ^!> key in
   declare "remove" spec R.remove C.remove;
 
