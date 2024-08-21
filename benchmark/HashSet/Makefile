@@ -28,3 +28,5 @@ bench:
 	@ echo
 	@ $(MAIN) --random-lookups 2000000 2>&1 | tee log/random-lookups.log
 	@ echo
+	@ $(MAIN) --everything 2000000 2>&1 | tee log/everything.log
+	@ echo

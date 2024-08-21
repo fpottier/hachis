@@ -28,8 +28,9 @@ let () =
 (* In [Stdlib.Hashtbl], [add] and [remove] return a result of type [unit],
    as opposed to [bool], so we have to adopt the same impoverished API. *)
 
-(* The semantics of [add] in this API is to replace an existing entry, if
-   there is one. *)
+(* In this API, the semantics of [add] is to replace an existing entry if
+   there is one. The semantics of [remove] is to do nothing if there is no
+   existing entry. *)
 
 module type API = sig
   type element = int
@@ -73,7 +74,8 @@ module S = struct type t = int let void = (-1) let tomb = (-2) end
 module HashSet : API = struct
   include Hachis.HashSet.Make(A)(S)(V)
   let[@inline] add s x = ignore (add s x)
-  let[@inline] remove s x = ignore (remove s x)
+  let[@inline] remove s x =
+    try ignore (remove s x) with Not_found -> ()
 end
 
 (* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
@@ -81,7 +83,8 @@ end
 module HectorHashSet : API = struct
   include Hachis.HashSet.Make(Hector.IntArray)(S)(V)
   let[@inline] add s x = ignore (add s x)
-  let[@inline] remove s x = ignore (remove s x)
+  let[@inline] remove s x =
+    try ignore (remove s x) with Not_found -> ()
 end
 
 (* Instantiate [Hachis.HashMap] so as to respect [API]. *)
@@ -92,7 +95,8 @@ module HashMap : API = struct
   type set = map
   let[@inline] add s x = ignore (add s x x)
   let[@inline] add_absent s x = add_absent s x x
-  let[@inline] remove s x = ignore (remove s x)
+  let[@inline] remove s x =
+    try ignore (remove s x) with Not_found -> ()
 end
 
 (* Instantiate [Stdlib.Hashtbl] so as to respect [API]. *)
@@ -383,15 +387,20 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
 
 (* Specific recipes. *)
 
+let either x y =
+  if Random.bool() then x else y
+
+#define ANY (either Absent Present)
+
 (* Consecutive insertions: starting with an empty set, successively insert
    all integers from [0] to [n-1]. *)
 
 (* In this benchmark, [u] is irrelevant. *)
 
 let consecutive_insertions n : recipes =
-  let seq1 = empty
-  and seq2 = n, (fun i -> ITAdd (Key (2 * i))) in
-  seq1, seq2
+  let recipe1 = empty
+  and recipe2 = n, (fun i -> ITAdd (Key (2 * i))) in
+  recipe1, recipe2
 
 PROMOTE("consecutive insertions", consecutive_insertions)
 
@@ -399,9 +408,9 @@ PROMOTE("consecutive insertions", consecutive_insertions)
    integers. *)
 
 let random_insertions n : recipes =
-  let seq1 = empty
-  and seq2 = n, (fun _ -> ITAdd Random) in
-  seq1, seq2
+  let recipe1 = empty
+  and recipe2 = n, (fun _ -> ITAdd Random) in
+  recipe1, recipe2
 
 PROMOTE("random insertions", random_insertions)
 
@@ -410,9 +419,9 @@ PROMOTE("random insertions", random_insertions)
    [add_absent]. *)
 
 let random_absent_insertions n : recipes =
-  let seq1 = empty
-  and seq2 = n, (fun _ -> ITAddAbsent) in
-  seq1, seq2
+  let recipe1 = empty
+  and recipe2 = n, (fun _ -> ITAddAbsent) in
+  recipe1, recipe2
 
 PROMOTE("random absent insertions", random_absent_insertions)
 
@@ -420,9 +429,9 @@ PROMOTE("random absent insertions", random_absent_insertions)
    elements in a random order. *)
 
 let random_deletions n : recipes =
-  let seq1 = 2 * n, (fun _ -> ITAdd Absent)
-  and seq2 =     n, (fun _ -> ITRemove Present) in
-  seq1, seq2
+  let recipe1 = 2 * n, (fun _ -> ITAdd Absent)
+  and recipe2 =     n, (fun _ -> ITRemove Present) in
+  recipe1, recipe2
 
 PROMOTE("random deletions", random_deletions)
 
@@ -430,9 +439,9 @@ PROMOTE("random deletions", random_deletions)
    perform [n] insertions or deletions (half of each). *)
 
 let random_insertions_deletions n : recipes =
-  let seq1 = n, (fun _ -> ITAdd Absent)
-  and seq2 = n, (fun _ -> if Random.bool() then ITAdd Absent else ITRemove Present) in
-  seq1, seq2
+  let recipe1 = n, (fun _ -> ITAdd Absent)
+  and recipe2 = n, (fun _ -> either (ITAdd Absent) (ITRemove Present)) in
+  recipe1, recipe2
 
 PROMOTE("random insertions and deletions", random_insertions_deletions)
 
@@ -441,11 +450,34 @@ PROMOTE("random insertions and deletions", random_insertions_deletions)
    keys (half of each). *)
 
 let random_lookups n : recipes =
-  let seq1 = n, (fun _ -> ITAdd Absent)
-  and seq2 = n, (fun _ -> ITMem (if Random.bool() then Absent else Present)) in
-  seq1, seq2
+  let recipe1 = n, (fun _ -> ITAdd Absent)
+  and recipe2 = n, (fun _ -> ITMem ANY) in
+  recipe1, recipe2
 
 PROMOTE("random lookups", random_lookups)
+
+(* A bit of everything: random insertions, deletions, and lookups. *)
+
+let everything n : recipes =
+  let recipe1 = empty
+  and recipe2 = n, fun i ->
+    let c = Random.int 100 in
+    if i < n/2 then
+      (* During a first phase, we perform more insertions, and a few
+         deletions and lookups. *)
+      if c < 80 then ITAdd ANY
+      else if c < 90 then ITRemove ANY
+      else ITMem ANY
+    else
+      (* During a second phase, we perform more lookups, and a few
+         insertions and deletions. *)
+      if c < 80 then ITMem ANY
+      else if c < 90 then ITRemove ANY
+      else ITAdd ANY
+  in
+  recipe1, recipe2
+
+PROMOTE("a bit of everything", everything)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -462,4 +494,5 @@ let () =
     "--random-absent-insertions", int random_absent_insertions, "";
     "--random-insertions-deletions", int random_insertions_deletions, "";
     "--random-lookups", int random_lookups, "";
+    "--everything", int everything, "";
   ] (fun _ -> ()) "Invalid usage"
