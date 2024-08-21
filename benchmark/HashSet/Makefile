@@ -24,3 +24,5 @@ bench:
 	@ echo
 	@ $(MAIN) --random-insertions-deletions 2000000 2>&1 | tee log/random-insertions-deletions.log
 	@ echo
+	@ $(MAIN) --random-lookups 2000000 2>&1 | tee log/random-lookups.log
+	@ echo

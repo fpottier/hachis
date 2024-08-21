@@ -184,12 +184,14 @@ type argument =
 type itype =
   | ITAdd of argument
   | ITRemove of argument
+  | ITMem of argument
 
 (* A concrete instruction is [add x] or [remove x]. *)
 
 type instruction =
   | IAdd of key
   | IRemove of key
+  | IMem of key
 
 (* A scenario consists of two sequences of instructions.
    The first sequence is not timed, and can be used to
@@ -245,6 +247,9 @@ let choose_instruction s u (it : itype) : instruction =
       let x = choose_key a s u in
       R.remove s x;
       IRemove x
+  | ITMem a ->
+      let x = choose_key a s u in
+      IMem x
 
 (* [choose_sequence s u r] randomly chooses an instruction sequence
    that obeys the recipe [r]. *)
@@ -257,14 +262,15 @@ let choose_sequence s u (r : recipe) : sequence =
 (* [print_statistics] prints statistics about a sequence of instructions. *)
 
 let print_statistics (seq : sequence) =
-  let add, remove = ref 0, ref 0 in
+  let add, remove, mem = ref 0, ref 0, ref 0 in
   Array.iter (fun instruction ->
     match instruction with
     | IAdd    _ -> incr add
     | IRemove _ -> incr remove
+    | IMem    _ -> incr mem
   ) seq;
-  printf "This scenario involves %d insertions and %d deletions.\n"
-    !add !remove
+  printf "This scenario involves %d insertions, %d deletions, and %d lookups.\n"
+    !add !remove !mem
 
 (* [choose_scenario u (r1, r2)] randomly chooses a scenario that begins with
    an empty set as the initial state and obeys the pair of recipes [(r1, r2)].
@@ -292,13 +298,15 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
 (* [EXECUTE(seq, add, remove)] runs the instruction sequence [seq] on the
    state [s] using the operations [add] and [remove]. *)
 
-#define EXECUTE(seq, add, remove) \
+#define EXECUTE(seq, add, remove, mem) \
   for i = 0 to Array.length seq - 1 do \
     match Array.unsafe_get seq i with \
     | IAdd x -> \
-        ignore (add s x) \
+        add s x \
     | IRemove x -> \
-        ignore (remove s x) \
+        remove s x \
+    | IMem x -> \
+        ignore (mem s x) \
   done
 
 (* [BENCHMARK(candidate, scenario, M)] expands to a benchmark whose name is
@@ -312,9 +320,9 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
   and name = name candidate \
   and run () = \
     let s = M.create () in \
-    EXECUTE(seq1, M.add, M.remove); \
+    EXECUTE(seq1, M.add, M.remove, M.mem); \
     fun () -> \
-      EXECUTE(seq2, M.add, M.remove) \
+      EXECUTE(seq2, M.add, M.remove, M.mem) \
   in \
   B.benchmark ~name ~quota ~basis ~run \
 )
@@ -377,6 +385,15 @@ let random_insertions_deletions n u : scenario =
   and seq2 = n, (fun _ -> if Random.bool() then ITAdd Absent else ITRemove Present) in
   choose_scenario u (seq1, seq2)
 
+(* Random lookups: starting with a set of cardinal [n], perform [n]
+   lookups, including lookups of absent keys and lookups of present
+   keys (half of each). *)
+
+let random_lookups n u : scenario =
+  let seq1 = n, (fun _ -> ITAdd Absent)
+  and seq2 = n, (fun _ -> ITMem (if Random.bool() then Absent else Present)) in
+  choose_scenario u (seq1, seq2)
+
 (* -------------------------------------------------------------------------- *)
 
 (* Benchmarks. *)
@@ -397,6 +414,10 @@ let random_insertions_deletions n : B.benchmark list =
   let u = 10 * n in
   BENCHMARKS("random insertions and deletions ", random_insertions_deletions n u)
 
+let random_lookups n : B.benchmark list =
+  let u = 10 * n in
+  BENCHMARKS("random lookups", random_lookups n u)
+
 (* -------------------------------------------------------------------------- *)
 
 (* Read the command line. *)
@@ -410,4 +431,5 @@ let () =
     "--random-deletions", int random_deletions, "";
     "--random-insertions", int random_insertions, "";
     "--random-insertions-deletions", int random_insertions_deletions, "";
+    "--random-lookups", int random_lookups, "";
   ] (fun _ -> ()) "Invalid usage"
