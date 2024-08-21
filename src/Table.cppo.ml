@@ -315,7 +315,7 @@ let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [zap s j v] zaps slot [j] and returns [v].
+(* [zap s j] zaps slot [j].
 
    Slot [j] must contain a key, as opposed to a sentinel. *)
 
@@ -330,7 +330,7 @@ let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
 
 (* The [value] array is unaffected. We tolerate garbage in it. *)
 
-let zap s j v =
+let zap s j =
   assert (is_index s j);
   assert (is_not_sentinel (K.unsafe_get s.key j));
   (* Test whether the next slot is void. *)
@@ -355,8 +355,7 @@ let zap s j v =
        with [void]. Write a tombstone at index [j]. *)
     K.unsafe_set s.key j tomb
     (* [s.occupation] is unchanged. *)
-  end;
-  v
+  end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -466,8 +465,150 @@ SEARCH(remove,
   raise Not_found,
   (* If a key [y] that is equivalent to [x] is found at index [j],
      then we decrease the population, zap slot [j], and return [y]. *)
-  s.population <- s.population - 1; zap s j y
+  s.population <- s.population - 1; zap s j; y
 )
+
+(* -------------------------------------------------------------------------- *)
+
+(* A template for a search function that remembers passing a tombstone. *)
+
+(* Two functions are generated. They correspond to the two states of a
+   simple state machine. In the initial state, which corresponds to the
+   main function, no tombstone has been encountered yet. In the final
+   state, which corresponds to the auxiliary function, a tombstone has
+   been encountered, and its index [t] has been recorded. *)
+
+(* In the final state, if the desired key is not found, then the search
+   moves back to slot [t]. That is, [j] is set to [t] before [ABSENT] is
+   executed. *)
+
+(* In the final state, if the desired key is found, then the key [y] and
+   its values are moved (copied) back to slot [t], and [j] is set to [t]
+   before [PRESENT] is executed. *)
+
+(* In either case, to an external observer, everything appears to work
+   just as if the search had terminated at index [j]. The observer does
+   not see that the search has gone further right and come back left. *)
+
+(* The macro [SEARCH2(SELF, ABSENT, PRESENT)] defines a search function.
+
+   [SELF] is the name of the main function.
+
+   The parameters of this function are:
+   - the table [s];
+   - the desired key [x];
+   - an optional value [ov];
+   - the current index [j] of the search.
+
+   [ABSENT] is executed if the key [x] is absent (not found).
+   This code can refer to [s], [x], [ov], [j].
+   This code can pretend that slot [j] in the [key] array contains [void]
+   and *must* overwrite this slot with a key.
+   This code must not update [s.occupation]; this is taken care of.
+   This code can assume that the [value] array has been allocated.
+
+   [PRESENT] is returned if a key [y] that is equivalent to [x] is found.
+   This code can refer to [s], [x], [ov], [j], and [y].
+
+   [CONCAT(SELF, _aux)] is the name of the auxiliary function.
+
+   The parameters of this function are:
+   - the table [s];
+   - the desired key [x];
+   - an optional value [ov];
+   - the index [t] of the tombstone that has been encountered;
+   - the current index [j] of the search. *)
+
+#def SEARCH2(SELF, ABSENT, PRESENT)
+
+let rec SELF (s : table) (x : key) ov (j : int) =
+  assert (is_not_sentinel x);
+  assert (is_index s j);
+  let c = K.unsafe_get s.key j in
+  if c == void then begin
+    (* This slot is void. *)
+    (* [x] is not in the table. *)
+    (* Update [s.occupation]. *)
+    s.occupation <- s.occupation + 1;
+    (* Make sure that the [value] array is allocated. *)
+    #ifdef ENABLE_MAP
+    possibly_allocate_value_array s v;
+    #endif
+    ABSENT
+  end
+  else if c == tomb then
+    (* This slot is a tombstone. *)
+    (* [x] might appear in the table beyond this tombstone. *)
+    (* Skip this slot and continue searching. *)
+    (* Switch to the second state, where a tombstone at index [t]
+       has been encountered. *)
+    let t = j in
+    CONCAT(SELF, _aux) s x ov t (next s j)
+  else
+    let y = c in
+    if equiv x y then
+      (* We have found a key [y] that is equivalent to [x]. *)
+      (PRESENT)
+    else
+      (* Skip this slot and continue searching. *)
+      SELF s x ov (next s j)
+
+and CONCAT(SELF, _aux) (s : table) (x : key) ov (t : int) (j : int) =
+  assert (is_not_sentinel x);
+  assert (is_index s t);
+  assert (K.unsafe_get s.key t == tomb);
+  assert (is_index s j);
+  let c = K.unsafe_get s.key j in
+  if c == void then
+    (* This slot is void. *)
+    (* [x] is not in the table. *)
+    (* Set [j] back down to [t]. *)
+    (* Even though slot [t] still contains [tomb], it is now logically
+       considered void. This slot will be overwritten by [ABSENT], so
+       there is no need to actually write [void] into it. Also, there
+       is no need to update [s.occupation], as [ABSENT] will overwrite
+       the tombstone with a key. *)
+    (* As we have seen a tombstone, the [value] array must be allocated. *)
+    (let j = t in ABSENT)
+  else if c == tomb then
+    (* This slot is a tombstone. *)
+    (* [x] might appear in the table beyond this tombstone. *)
+    (* Skip this slot and continue searching. *)
+    CONCAT(SELF, _aux) s x ov t (next s j)
+  else
+    let y = c in
+    if equiv x y then begin
+      (* We have found a key [y] that is equivalent to [x]. *)
+      (* Move the key [y], and its value, from slot [j] down to slot [t],
+         thereby overwriting the tombstone at [t]. Then, zap slot [j].
+         Thus, the next search for [x] or [y] will be faster. Furthermore,
+         this can turn one or more occupied slots back into void slots. *)
+      K.unsafe_set s.key t y;
+      #ifdef ENABLE_MAP
+      set_value s t (get_value s j);
+      #endif
+      zap s j;
+      (* Move the index [j] back down to [t], and execute [PRESENT]. *)
+      let j = t in PRESENT
+    end
+    else
+      (* Skip this slot and continue searching. *)
+      CONCAT(SELF, _aux) s x ov t (next s j)
+
+#enddef
+
+(* The macro [ADD] inserts the key [x] and value [v] at index [j]
+   and increments [s.population]. *)
+
+(* It assumes that the [value] array is allocated. *)
+
+#def ADD
+  s.population <- s.population + 1;
+  K.unsafe_set s.key j x
+  #ifdef ENABLE_MAP
+  ;set_value s j v
+  #endif
+#enddef
 
 (* -------------------------------------------------------------------------- *)
 
@@ -483,90 +624,34 @@ SEARCH(remove,
    in addition to the key [x], and this value is written to
    the [value] array. *)
 
-let rec add (s : table) (x : key) ov (j : int) : bool =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then begin
-    (* [x] is not in the table, and can be inserted here. *)
-    K.unsafe_set s.key j x;
-    #ifdef ENABLE_MAP
-    cautiously_set_value s j v;
-    #endif
-    s.population <- s.population + 1;
-    s.occupation <- s.occupation + 1;
-    true
-  end
-  else if c == tomb then
-    (* [x] might be in the table, somewhere beyond this tombstone.
-       Search for it, and if we do not find it, then insert it
-       here, at index [j]. *)
-    let t = j in
-    add_at_tombstone s x ov t (next s j)
-  else
-    let y = c in
-    if equiv x y then
-      (* We have found [x]. It is already present in the table. *)
-      false
-    else
-      (* Skip this slot and continue searching. *)
-      add s x ov (next s j)
+SEARCH2(add,
+  (* If [x] is not found, it is inserted at [j], and [true] is returned. *)
+  ADD; true,
+  (* If [x] or an equivalent key is found, [false] is returned. *)
+  ignore j; false
+)
 
-(* [add_at_tombstone s x ov t j] searches for [x], starting from index [j].
-   [t] must be the index of a tombstone.
-   If [x] is not found then [x] is inserted at index [t],
-   with value [ov],
-   and [true] is returned.
-   If [x] (or an equivalent key) is found then nothing happens
-   and [false] is returned. *)
+(* In [add], in case a tombstone is encountered, one might be tempted to
+   always overwrite this tombstone with [x], then use [remove] to find and
+   remove any key [y] that is equivalent to [x] and that is already a member
+   of the table. However, this does not work. If the table already contains a
+   key [y] that is equivalent to [x], then [add] is expected to leave [y] in
+   the table; it must not replace [y] with [x]. *)
 
-and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
-  assert (is_not_sentinel x);
-  assert (is_index s t);
-  assert (K.unsafe_get s.key t == tomb);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then begin
-    (* [x] is not in the table. Insert it at index [t],
-       which currently contains a tombstone. *)
-    K.unsafe_set s.key t x;
-    #ifdef ENABLE_MAP
-    (* Because we have seen a tombstone, the [value] array must have
-       been allocated already. *)
-    set_value s t v;
-    #endif
-    s.population <- s.population + 1;
-      (* [s.occupation] is unchanged. *)
-    true
-  end
-  else if c == tomb then
-    (* Skip this slot and continue searching. *)
-    add_at_tombstone s x ov t (next s j)
-  else
-    let y = c in
-    if equiv x y then begin
-      (* A key [y] that is equivalent to [x] is already in the table. *)
-      (* We could do nothing and return [false]. Instead, we write [y]
-         at index [t], and zap slot [j]. This means that the next search
-         for [x] or [y] will be faster. Furthermore, this can turn one or
-         more occupied slots back into void slots. *)
-      K.unsafe_set s.key t y;
-      #ifdef ENABLE_MAP
-      set_value s t (get_value s j);
-      #endif
-      (* Zap slot [j] and return [false]. *)
-      zap s j false
-    end
-    else
-      (* Skip this slot and continue searching. *)
-      add_at_tombstone s x ov t (next s j)
+(* -------------------------------------------------------------------------- *)
 
-(* In [add] (above), in case [c == tomb], one might be tempted to always
-   overwrite the tombstone with [x], then call a variant of [remove] to find
-   and remove any key [y] that is equivalent to [x] and that is already a
-   member of the table. Unfortunately, this idea does not work. If the table
-   already contains a key [y] that is equivalent to [x], then [add] is
-   expected to leave [y] in the table; it must not replace [y] with [x]. *)
+(* Combined search and insertion: [find_key_else_add]. *)
+
+(* [find_key_else_add] is analogous to [find_key], but inserts the key [x]
+   into the table, if no key that is equivalent to [x] is found, before
+   raising an exception. It is a combination of [find_key] and [add]. *)
+
+SEARCH2(find_key_else_add,
+  (* If [x] is not found, it is inserted at [j], and [Not_found] is raised. *)
+  ADD; raise Not_found,
+  (* If a key [y] that is equivalent to [x] is found, [y] is returned. *)
+  ignore j; y
+)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -606,88 +691,6 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
     assert (not (equiv x y));
     (* Skip this slot and continue searching. *)
     add_absent s x ov (next s j)
-
-(* -------------------------------------------------------------------------- *)
-
-(* Combined search and insertion: [find_key_else_add]. *)
-
-(* [find_key_else_add] is analogous to [find_key], but inserts the key [x]
-   into the table, if no key that is equivalent to [x] is found, before
-   raising an exception. It is a combination of [find_key] and [add]. *)
-
-let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then begin
-    (* [x] is not in the table. Insert it, then raise an exception. *)
-    K.unsafe_set s.key j x;
-    #ifdef ENABLE_MAP
-    cautiously_set_value s j v;
-    #endif
-    s.population <- s.population + 1;
-    s.occupation <- s.occupation + 1;
-    raise Not_found
-  end
-  else if c == tomb then
-    (* [x] might be in the table beyond this tombstone. *)
-    let t = j in
-    find_key_else_add_at_tombstone s x ov t j
-  else
-    let y = c in
-    (* If [x] and [y] are equivalent, then we have found [y];
-       otherwise, skip this slot and continue searching. *)
-    if equiv x y then y else find_key_else_add s x ov (next s j)
-
-(* [find_key_else_add_at_tombstone s x ov t j] searches for [x], starting from [j].
-   [t] must be the index of a tombstone.
-   If [x] is not found then the key [x] inserted at index [t] with value [ov],
-   and [Not_found] is raised.
-   If [x] (or an equivalent key) is found then nothing happens. *)
-
-and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : key =
-  assert (is_not_sentinel x);
-  assert (is_index s t);
-  assert (K.unsafe_get s.key t == tomb);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then begin
-    (* [x] is not in the table. Insert it at index [t],
-       which currently contains a tombstone,
-       then raise an exception. *)
-    K.unsafe_set s.key t x;
-    #ifdef ENABLE_MAP
-    (* Because we have seen a tombstone, the [value] array must have
-       been allocated already. *)
-    set_value s t v;
-    #endif
-    s.population <- s.population + 1;
-    (* [s.occupation] is unchanged. *)
-    raise Not_found
-  end
-  else if c == tomb then
-    (* Skip this slot and continue searching. *)
-    find_key_else_add_at_tombstone s x ov t (next s j)
-  else
-    let y = c in
-    (* If [x] and [y] are equivalent, then we have found [y];
-       otherwise, skip this slot and continue searching. *)
-    if equiv x y then begin
-      (* A key [y] that is equivalent to [x] is already in the table. *)
-      (* We could do nothing. Instead, we write [y] at index [t], and zap
-         slot [j]. This means that the next search for [x] or [y] will be
-         faster. Furthermore, this can turn one or more occupied slots back
-         into void slots. *)
-      K.unsafe_set s.key t y;
-      #ifdef ENABLE_MAP
-      set_value s t (get_value s j);
-      #endif
-      (* Zap slot [j] and return [y]. *)
-      zap s j y
-    end
-    else
-      (* Skip this slot and continue searching. *)
-      find_key_else_add_at_tombstone s x ov t (next s j)
 
 (* -------------------------------------------------------------------------- *)
 
