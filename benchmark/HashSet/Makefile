@@ -20,6 +20,8 @@ bench:
 	@ echo
 	@ $(MAIN) --random-insertions 2000000 2>&1 | tee log/random-insertions.log
 	@ echo
+	@ $(MAIN) --random-absent-insertions 2000000 2>&1 | tee log/random-absent-insertions.log
+	@ echo
 	@ $(MAIN) --random-deletions 2000000 2>&1 | tee log/random-deletions.log
 	@ echo
 	@ $(MAIN) --random-insertions-deletions 2000000 2>&1 | tee log/random-insertions-deletions.log

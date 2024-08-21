@@ -36,6 +36,7 @@ module type API = sig
   type set
   val create : unit -> set
   val add : set -> element -> unit
+  val add_absent : set -> element -> unit
   val remove : set -> element -> unit
   val mem : set -> element -> bool
 end
@@ -90,6 +91,7 @@ module HashMap : API = struct
   type element = key
   type set = map
   let[@inline] add s x = ignore (add s x x)
+  let[@inline] add_absent s x = add_absent s x x
   let[@inline] remove s x = ignore (remove s x)
 end
 
@@ -105,6 +107,7 @@ module Hashtbl : API = struct
   type set = unit t
   let[@inline] create () = create 128
   let[@inline] add s x = replace s x ()
+  and[@inline] add_absent s x = add s x ()
 end
 
 (* Instantiate [Stdlib.Set] so as to respect [API]. *)
@@ -115,6 +118,7 @@ module Set : API = struct
   type set = t ref
   let[@inline] create () = ref empty
   let[@inline] add s x = (s := add x !s)
+  let add_absent = add
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
 end
@@ -127,6 +131,7 @@ module BabyWSet : API = struct
   type set = t ref
   let[@inline] create () = ref empty
   let[@inline] add s x = (s := add x !s)
+  let add_absent = add
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
 end
@@ -183,6 +188,7 @@ type argument =
 
 type itype =
   | ITAdd of argument
+  | ITAddAbsent
   | ITRemove of argument
   | ITMem of argument
 
@@ -190,6 +196,7 @@ type itype =
 
 type instruction =
   | IAdd of key
+  | IAddAbsent of key
   | IRemove of key
   | IMem of key
 
@@ -251,6 +258,11 @@ let choose_instruction s u (it : itype) : instruction =
       let x = choose_key a s u in
       R.add s x;
       IAdd x
+  | ITAddAbsent ->
+      let a = Absent in
+      let x = choose_key a s u in
+      R.add s x;
+      IAddAbsent x
   | ITRemove a ->
       let x = choose_key a s u in
       R.remove s x;
@@ -273,9 +285,10 @@ let print_statistics (seq : sequence) =
   let add, remove, mem = ref 0, ref 0, ref 0 in
   Array.iter (fun instruction ->
     match instruction with
-    | IAdd    _ -> incr add
-    | IRemove _ -> incr remove
-    | IMem    _ -> incr mem
+    | IAdd       _ -> incr add
+    | IAddAbsent _ -> incr add
+    | IRemove    _ -> incr remove
+    | IMem       _ -> incr mem
   ) seq;
   printf "This scenario involves %d insertions, %d deletions, and %d lookups.\n"
     !add !remove !mem
@@ -303,18 +316,20 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
 
 (* Scenario execution. *)
 
-(* [EXECUTE(seq, add, remove)] runs the instruction sequence [seq] on the
-   state [s] using the operations [add] and [remove]. *)
+(* [EXECUTE(seq, M)] runs the instruction sequence [seq] on the
+   state [s] using the operations provided by the module [M]. *)
 
-#define EXECUTE(seq, add, remove, mem) \
+#define EXECUTE(seq, M) \
   for i = 0 to Array.length seq - 1 do \
     match Array.unsafe_get seq i with \
     | IAdd x -> \
-        add s x \
+        M.add s x \
+    | IAddAbsent x -> \
+        M.add_absent s x \
     | IRemove x -> \
-        remove s x \
+        M.remove s x \
     | IMem x -> \
-        ignore (mem s x) \
+        ignore (M.mem s x) \
   done
 
 (* [BENCHMARK(candidate, scenario, M)] expands to a benchmark whose name is
@@ -328,9 +343,9 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
   and name = name candidate \
   and run () = \
     let s = M.create () in \
-    EXECUTE(seq1, M.add, M.remove, M.mem); \
+    EXECUTE(seq1, M); \
     fun () -> \
-      EXECUTE(seq2, M.add, M.remove, M.mem) \
+      EXECUTE(seq2, M) \
   in \
   B.benchmark ~name ~quota ~basis ~run \
 )
@@ -390,6 +405,17 @@ let random_insertions n : recipes =
 
 PROMOTE("random insertions", random_insertions)
 
+(* Random absent insertions: starting with an empty set, insert [n]
+   random integers, which are not present already, and use
+   [add_absent]. *)
+
+let random_absent_insertions n : recipes =
+  let seq1 = empty
+  and seq2 = n, (fun _ -> ITAddAbsent) in
+  seq1, seq2
+
+PROMOTE("random absent insertions", random_absent_insertions)
+
 (* Random deletions: starting with a set of cardinal [2 * n], remove [n]
    elements in a random order. *)
 
@@ -433,6 +459,7 @@ let () =
     "--consecutive-insertions", int consecutive_insertions, "";
     "--random-deletions", int random_deletions, "";
     "--random-insertions", int random_insertions, "";
+    "--random-absent-insertions", int random_absent_insertions, "";
     "--random-insertions-deletions", int random_insertions_deletions, "";
     "--random-lookups", int random_lookups, "";
   ] (fun _ -> ()) "Invalid usage"
