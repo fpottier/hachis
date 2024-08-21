@@ -6,3 +6,4 @@ headache.config export-ignore
 *.txt           export-ignore
 play.ml         export-ignore
 test            export-ignore
+benchmark       export-ignore
