@@ -57,6 +57,15 @@ module S = struct type t = int let void = (-1) let tomb = (-2) end
 
 module HashSet = Hachis.HashSet.Make(A)(S)(V)
 
+(* Instantiate Hachis.HashSet using Hector.IntArray. *)
+
+module IntArray = struct
+  include Hector.IntArray
+  let copy a = sub a 0 (length a)
+end
+
+module HectorHashSet = Hachis.HashSet.Make(IntArray)(S)(V)
+
 (* Instantiate Hachis.HashMap so as to respect the HashSet API. *)
 
 module HashMap = struct
@@ -286,8 +295,9 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
     BENCHMARK("Set", Set); \
     BENCHMARK("Baby.W.Set", BabyWSet); \
     BENCHMARK("Hashtbl", Hashtbl); \
-    BENCHMARK("HashSet", HashSet); \
     BENCHMARK("HashMap", HashMap); \
+    BENCHMARK("HashSet", HashSet); \
+    BENCHMARK("HectorHashSet", HashSet); \
   ]
 
 (* -------------------------------------------------------------------------- *)
