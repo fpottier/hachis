@@ -306,11 +306,6 @@ let[@inline] set_value (s : table) (j : index) (v : value) =
   assert (value_array_is_allocated s);
   V.unsafe_set s.value j v
 
-let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
-  let dummy = v in
-  possibly_allocate_value_array s dummy;
-  set_value s j v
-
 #endif
 
 (* -------------------------------------------------------------------------- *)
@@ -670,7 +665,8 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
   if c == void then begin
     K.unsafe_set s.key j x;
     #ifdef ENABLE_MAP
-    cautiously_set_value s j v;
+    possibly_allocate_value_array s v;
+    set_value s j v;
     #endif
     s.population <- s.population + 1;
     s.occupation <- s.occupation + 1
@@ -712,7 +708,8 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   if c == void then begin
     K.unsafe_set s.key j x;
     #ifdef ENABLE_MAP
-    cautiously_set_value s j v;
+    possibly_allocate_value_array s v;
+    set_value s j v;
     #endif
   end
   else
