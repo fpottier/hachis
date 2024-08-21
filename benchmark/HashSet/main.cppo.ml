@@ -358,7 +358,6 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
    [SCENARIO]. [NAME] is the name of the benchmark itself. *)
 
 #define BENCHMARKS(NAME, SCENARIO) \
-  printf "Scenario: %s\n" NAME; \
   let name candidate = \
     sprintf "%s (n = %d, u = %d) (%s)" NAME n u candidate in \
   let scenario = SCENARIO in \
@@ -378,10 +377,11 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
 
 #define PROMOTE(NAME, F) \
   let F n : B.benchmark list = \
-  let u = 10 * n in \
-  let recipes = F n in \
-  let scenario = choose_scenario u recipes in \
-  BENCHMARKS(NAME, scenario)
+    printf "Scenario: %s\n" NAME; \
+    let u = 10 * n in \
+    let recipes = F n in \
+    let scenario = choose_scenario u recipes in \
+    BENCHMARKS(NAME, scenario)
 
 (* -------------------------------------------------------------------------- *)
 
