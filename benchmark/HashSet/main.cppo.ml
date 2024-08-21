@@ -59,12 +59,7 @@ module HashSet = Hachis.HashSet.Make(A)(S)(V)
 
 (* Instantiate Hachis.HashSet using Hector.IntArray. *)
 
-module IntArray = struct
-  include Hector.IntArray
-  let copy a = sub a 0 (length a)
-end
-
-module HectorHashSet = Hachis.HashSet.Make(IntArray)(S)(V)
+module HectorHashSet = Hachis.HashSet.Make(Hector.IntArray)(S)(V)
 
 (* Instantiate Hachis.HashMap so as to respect the HashSet API. *)
 
