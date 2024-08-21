@@ -465,7 +465,8 @@ SEARCH(remove,
 
 (* -------------------------------------------------------------------------- *)
 
-(* A template for a search function that remembers passing a tombstone. *)
+(* A template for a search function that remembers passing a tombstone,
+   and comes back to this tombstone once the search ends. *)
 
 (* Two functions are generated. They correspond to the two states of a
    simple state machine. In the initial state, which corresponds to the
@@ -478,7 +479,7 @@ SEARCH(remove,
    executed. *)
 
 (* In the final state, if the desired key is found, then the key [y] and
-   its values are moved (copied) back to slot [t], and [j] is set to [t]
+   its value are moved (copied) back to slot [t], and [j] is set to [t]
    before [PRESENT] is executed. *)
 
 (* In either case, to an external observer, everything appears to work
