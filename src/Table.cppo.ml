@@ -315,71 +315,65 @@ let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* Membership tests: [mem], [find_key], [find_value]. *)
+(* The macro [SEARCH(SELF, ABSENT, PRESENT)] defines a search function.
 
-(* We search for a key [x] in order to determine whether [x] (or some key
-   that is equivalent to [x]) is present in the table. *)
+   [SELF] is the name of the function.
 
-(* [j] is the index that is currently under examination. *)
+   The parameters of this function are:
+   - the table [s];
+   - the desired key [x];
+   - the current index [j] of the search.
 
-(* The Boolean result indicates whether [x] was found. *)
+   The code [ABSENT] is executed if the key [x] is absent (not found).
 
-let rec mem (s : table) (x : key) (j : int) : bool =
+   The code [PRESENT] is executed if a key [y] that is equivalent to
+   [x] is found. This code can refer to [y]. *)
+
+#def SEARCH(SELF, ABSENT, PRESENT)
+
+let rec SELF (s : table) (x : key) (j : int) =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   if c == void then
+    (* This slot is void. *)
     (* [x] is not in the table. *)
-    false
+    (ABSENT)
   else if c == tomb then
-    (* [x] might be in the table beyond this tombstone. *)
-    mem s x (next s j)
+    (* This slot is a tombstone. *)
+    (* [x] might appear in the table beyond this tombstone. *)
+    (* Skip this slot and continue searching. *)
+    SELF s x (next s j)
   else
     let y = c in
-    (* If [x] and [y] are equivalent, then we have succeeded;
-       otherwise, skip this slot and continue searching. *)
-    equiv x y || mem s x (next s j)
+    if equiv x y then
+      (* We have found a key [y] that is equivalent to [x]. *)
+      (PRESENT)
+    else
+      (* Skip this slot and continue searching. *)
+      SELF s x (next s j)
+
+#enddef
+
+(* -------------------------------------------------------------------------- *)
+
+(* Membership tests: [mem], [find_key], [find_value]. *)
+
+(* [mem] determines whether the key [x] (or some equivalent key) is present
+   in the table. It returns a Boolean result. *)
+
+SEARCH(mem, false, true)
 
 (* [find_key] is analogous to [mem], but returns the key [y] that is found,
    and raises an exception if no key that is equivalent to [x] is found. *)
 
-let rec find_key (s : table) (x : key) (j : int) : key =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then
-    (* [x] is not in the table. *)
-    raise Not_found
-  else if c == tomb then
-    (* [x] might be in the table beyond this tombstone. *)
-    find_key s x (next s j)
-  else
-    let y = c in
-    (* If [x] and [y] are equivalent, then we have found [y];
-       otherwise, skip this slot and continue searching. *)
-    if equiv x y then y else find_key s x (next s j)
-
-#ifdef ENABLE_MAP
+SEARCH(find_key, raise Not_found, y)
 
 (* [find_value] is analogous to [find_key], but returns the value associated
    with the key [y], instead of the key [y] itself. *)
 
-let rec find_value (s : table) (x : key) (j : int) : value =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then
-    (* [x] is not in the table. *)
-    raise Not_found
-  else if c == tomb then
-    (* [x] might be in the table beyond this tombstone. *)
-    find_value s x (next s j)
-  else
-    let y = c in
-    (* If [x] and [y] are equivalent, then we have found [y];
-       otherwise, skip this slot and continue searching. *)
-    if equiv x y then get_value s j else find_value s x (next s j)
-
+#ifdef ENABLE_MAP
+SEARCH(find_value, raise Not_found, get_value s j)
 #endif
 
 (* [length] is analogous to [mem], but measures the length of the linear
