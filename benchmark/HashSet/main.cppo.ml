@@ -209,6 +209,14 @@ type scenario =
 type recipe =
   int * (int -> itype)
 
+let empty : recipe =
+  0, (fun _ -> assert false)
+
+(* A scenario can be created out of a pair of recipes. *)
+
+type recipes =
+  recipe * recipe
+
 (* [choose_key a s u] randomly chooses an integer value inside or
    outside of the set [s], depending on [a]. If it must be chosen
    outside of [s], then it is randomly drawn below [u]. *)
@@ -278,7 +286,7 @@ let print_statistics (seq : sequence) =
    (initialization). The recipe [r2] is used to generate a second sequence of
    instructions (use). *)
 
-let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
+let choose_scenario u (r1, r2 : recipes) : scenario =
   let s = R.create() in
   let seq1 = choose_sequence s u r1 in
   R.reset_max_pop s;
@@ -344,79 +352,74 @@ let choose_scenario u (r1, r2 : recipe * recipe) : scenario =
     BENCHMARK("HectorHashSet", HashSet); \
   ]
 
+(* [PROMOTE(NAME, F)] requires [F] to be a function of type [int -> recipes],
+   mapping an integer [n] to a benchmark scenario. [NAME] is the name of this
+   benchmark. The macro produces a new definition of [F] at type
+   [int -> benchmark list]. *)
+
+#define PROMOTE(NAME, F) \
+  let F n : B.benchmark list = \
+  let u = 10 * n in \
+  let recipes = F n in \
+  let scenario = choose_scenario u recipes in \
+  BENCHMARKS(NAME, scenario)
+
 (* -------------------------------------------------------------------------- *)
 
-(* Specific (pairs of) recipes. *)
-
-let empty : recipe =
-  0, (fun _ -> assert false)
+(* Specific recipes. *)
 
 (* Consecutive insertions: starting with an empty set, successively insert
    all integers from [0] to [n-1]. *)
 
 (* In this benchmark, [u] is irrelevant. *)
 
-let consecutive_insertions n u : scenario =
+let consecutive_insertions n : recipes =
   let seq1 = empty
   and seq2 = n, (fun i -> ITAdd (Key (2 * i))) in
-  choose_scenario u (seq1, seq2)
+  seq1, seq2
+
+PROMOTE("consecutive insertions", consecutive_insertions)
 
 (* Random insertions: starting with an empty set, insert [n] random
    integers. *)
 
-let random_insertions n u : scenario =
+let random_insertions n : recipes =
   let seq1 = empty
   and seq2 = n, (fun _ -> ITAdd Random) in
-  choose_scenario u (seq1, seq2)
+  seq1, seq2
+
+PROMOTE("random insertions", random_insertions)
 
 (* Random deletions: starting with a set of cardinal [2 * n], remove [n]
    elements in a random order. *)
 
-let random_deletions n u : scenario =
+let random_deletions n : recipes =
   let seq1 = 2 * n, (fun _ -> ITAdd Absent)
   and seq2 =     n, (fun _ -> ITRemove Present) in
-  choose_scenario u (seq1, seq2)
+  seq1, seq2
+
+PROMOTE("random deletions", random_deletions)
 
 (* Random insertions and deletions: starting with a set of cardinal [n],
    perform [n] insertions or deletions (half of each). *)
 
-let random_insertions_deletions n u : scenario =
+let random_insertions_deletions n : recipes =
   let seq1 = n, (fun _ -> ITAdd Absent)
   and seq2 = n, (fun _ -> if Random.bool() then ITAdd Absent else ITRemove Present) in
-  choose_scenario u (seq1, seq2)
+  seq1, seq2
+
+PROMOTE("random insertions and deletions", random_insertions_deletions)
 
 (* Random lookups: starting with a set of cardinal [n], perform [n]
    lookups, including lookups of absent keys and lookups of present
    keys (half of each). *)
 
-let random_lookups n u : scenario =
+let random_lookups n : recipes =
   let seq1 = n, (fun _ -> ITAdd Absent)
   and seq2 = n, (fun _ -> ITMem (if Random.bool() then Absent else Present)) in
-  choose_scenario u (seq1, seq2)
+  seq1, seq2
 
-(* -------------------------------------------------------------------------- *)
-
-(* Benchmarks. *)
-
-let consecutive_insertions n : B.benchmark list =
-  let u = 10 * n in
-  BENCHMARKS("consecutive insertions", consecutive_insertions n u)
-
-let random_insertions n : B.benchmark list =
-  let u = 10 * n in
-  BENCHMARKS("random insertions", random_insertions n u)
-
-let random_deletions n : B.benchmark list =
-  let u = 10 * n in
-  BENCHMARKS("random deletions", random_deletions n u)
-
-let random_insertions_deletions n : B.benchmark list =
-  let u = 10 * n in
-  BENCHMARKS("random insertions and deletions ", random_insertions_deletions n u)
-
-let random_lookups n : B.benchmark list =
-  let u = 10 * n in
-  BENCHMARKS("random lookups", random_lookups n u)
+PROMOTE("random lookups", random_lookups)
 
 (* -------------------------------------------------------------------------- *)
 
