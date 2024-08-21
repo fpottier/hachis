@@ -359,12 +359,12 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
     sprintf "%s (n = %d, u = %d) (%s)" NAME n u candidate in \
   let scenario = SCENARIO in \
   [ \
-    BENCHMARK("Set", Set); \
-    BENCHMARK("Baby.W.Set", BabyWSet); \
+    (* BENCHMARK("Set", Set); *) \
+    (* BENCHMARK("Baby.W.Set", BabyWSet); *) \
     BENCHMARK("Hashtbl", Hashtbl); \
     BENCHMARK("HashMap", HashMap); \
     BENCHMARK("HashSet", HashSet); \
-    BENCHMARK("HectorHashSet", HashSet); \
+    (* BENCHMARK("HectorHashSet", HashSet); *) \
   ]
 
 (* [PROMOTE(NAME, F)] requires [F] to be a function of type [int -> recipes],
