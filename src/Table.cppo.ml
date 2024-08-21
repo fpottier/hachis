@@ -315,80 +315,6 @@ let[@inline] cautiously_set_value (s : table) (j : index) (v : value) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* The macro [SEARCH(SELF, ACCU, ABSENT, PRESENT, ACCU')] defines a search
-   function.
-
-   [SELF] is the name of the function.
-
-   The parameters of this function are:
-   - the table [s];
-   - the desired key [x];
-   - the current index [j] of the search;
-   - the optional accumulator [ACCU].
-
-   [ACCU] is a formal parameter, and can be empty.
-
-   The code [ABSENT] is executed if the key [x] is absent (not found).
-
-   The code [PRESENT] is executed if a key [y] that is equivalent to
-   [x] is found. This code can refer to [y].
-
-   The updated accumulator [ACCU'] is passed to the recursive calls. *)
-
-#def SEARCH(SELF, ACCU, ABSENT, PRESENT, ACCU')
-
-let rec SELF (s : table) (x : key) (j : int) ACCU =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then
-    (* This slot is void. *)
-    (* [x] is not in the table. *)
-    (ABSENT)
-  else if c == tomb then
-    (* This slot is a tombstone. *)
-    (* [x] might appear in the table beyond this tombstone. *)
-    (* Skip this slot and continue searching. *)
-    SELF s x (next s j) ACCU'
-  else
-    let y = c in
-    if equiv x y then
-      (* We have found a key [y] that is equivalent to [x]. *)
-      (PRESENT)
-    else
-      (* Skip this slot and continue searching. *)
-      SELF s x (next s j) ACCU'
-
-#enddef
-
-(* -------------------------------------------------------------------------- *)
-
-(* Search functions: [mem], [find_key], [find_value], [length]. *)
-
-(* [mem] determines whether the key [x] (or some equivalent key) is present
-   in the table. It returns a Boolean result. *)
-
-SEARCH(mem,, false, true,)
-
-(* [find_key] is analogous to [mem], but returns the key [y] that is found,
-   and raises an exception if no key that is equivalent to [x] is found. *)
-
-SEARCH(find_key,, raise Not_found, y,)
-
-(* [find_value] is analogous to [find_key], but returns the value associated
-   with the key [y], instead of the key [y] itself. *)
-
-#ifdef ENABLE_MAP
-SEARCH(find_value,, raise Not_found, get_value s j,)
-#endif
-
-(* [length] is analogous to [mem], but measures the length of the linear
-   scan that is required to find [x]. It is used by [statistics]. *)
-
-SEARCH(length, accu, accu, accu, accu + 1)
-
-(* -------------------------------------------------------------------------- *)
-
 (* [zap s j v] zaps slot [j] and returns [v].
 
    Slot [j] must contain a key, as opposed to a sentinel. *)
@@ -434,37 +360,114 @@ let zap s j v =
 
 (* -------------------------------------------------------------------------- *)
 
-(* Deletion: [remove]. *)
+(* A template for a search function. *)
 
-(* We search for a key [x] and remove it if it is present. *)
+(* The macro [SEARCH_WITH_ACCU(SELF, ACCU, ABSENT, PRESENT, ACCU')]
+   defines a search function.
 
-(* The Boolean result indicates whether [x] was found and removed. *)
+   [SELF] is the name of the function.
 
-(* The fields [s.population] and [s.occupation] are updated. *)
+   The parameters of this function are:
+   - the table [s];
+   - the desired key [x];
+   - the current index [j] of the search;
+   - the optional accumulator [ACCU].
 
-(* The [value] array is unaffected. We tolerate garbage in it. *)
+   [ACCU] is a formal parameter, and can be empty.
 
-let rec remove (s : table) (x : key) (j : int) : key =
+   [ABSENT] is executed if the key [x] is absent (not found).
+   This code can refer to [s], [x], [j], [ACCU].
+
+   [PRESENT] is executed if a key [y] that is equivalent to [x] is found.
+   This code can refer to [s], [x], [j], [ACCU], and [y].
+
+   The updated accumulator [ACCU'] is passed to the recursive calls.
+   This code can refer to [s], [x], [j], [ACCU]. *)
+
+#def SEARCH_WITH_ACCU(SELF, ACCU, ABSENT, PRESENT, ACCU')
+
+let rec SELF (s : table) (x : key) (j : int) ACCU =
   assert (is_not_sentinel x);
   assert (is_index s j);
   let c = K.unsafe_get s.key j in
   if c == void then
+    (* This slot is void. *)
     (* [x] is not in the table. *)
-    raise Not_found
+    (ABSENT)
   else if c == tomb then
-    (* [x] might be in the table beyond this tombstone. *)
-    remove s x (next s j)
+    (* This slot is a tombstone. *)
+    (* [x] might appear in the table beyond this tombstone. *)
+    (* Skip this slot and continue searching. *)
+    SELF s x (next s j) ACCU'
   else
     let y = c in
-    if equiv x y then begin
+    if equiv x y then
       (* We have found a key [y] that is equivalent to [x]. *)
-      s.population <- s.population - 1;
-      (* Zap slot [j] and return [y]. *)
-      zap s j y
-    end
+      (PRESENT)
     else
       (* Skip this slot and continue searching. *)
-      remove s x (next s j)
+      SELF s x (next s j) ACCU'
+
+#enddef
+
+(* The macro [SEARCH(SELF, ABSENT, PRESENT)]
+   defines a search function without an accumulator. *)
+
+#def SEARCH(SELF, ABSENT, PRESENT)
+SEARCH_WITH_ACCU(SELF,, ABSENT, PRESENT,)
+#enddef
+
+(* -------------------------------------------------------------------------- *)
+
+(* Search functions. *)
+
+(* [mem] determines whether the key [x] (or some equivalent key) is present
+   in the table. It returns a Boolean result. *)
+
+SEARCH(mem,
+  false,
+  true
+)
+
+(* [find_key] is analogous to [mem], but returns the key [y] that is found,
+   and raises an exception if no key that is equivalent to [x] is found. *)
+
+SEARCH(find_key,
+  raise Not_found,
+  y
+)
+
+(* [find_value] is analogous to [find_key], but returns the value associated
+   with the key [y], instead of the key [y] itself. *)
+
+#ifdef ENABLE_MAP
+
+SEARCH(find_value,
+  raise Not_found,
+  get_value s j
+)
+
+#endif
+
+(* [length] is analogous to [mem], but measures the length of the linear
+   scan that is required to find [x]. It is used by [statistics]. *)
+
+SEARCH_WITH_ACCU(length, accu,
+  accu,
+  accu,
+accu + 1)
+
+(* [remove] searches for the key [x] and removes it if it is present. *)
+(* The Boolean result indicates whether [x] was found and removed. *)
+(* The fields [s.population] and [s.occupation] are updated. *)
+(* The [value] array is unaffected. We tolerate garbage in it. *)
+
+SEARCH(remove,
+  raise Not_found,
+  (* If a key [y] that is equivalent to [x] is found at index [j],
+     then we decrease the population, zap slot [j], and return [y]. *)
+  s.population <- s.population - 1; zap s j y
+)
 
 (* -------------------------------------------------------------------------- *)
 
