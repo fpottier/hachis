@@ -2,6 +2,15 @@
 
 ## Features
 
+* We should offer a variant of `remove` that does nothing
+  when the key is absent, and returns `unit`.
+  This variant should probably be called `remove`.
+  Our current `remove` should be called `find_key_and_remove`.
+  In maps, we may also wish to have `find_value_and_remove`.
+  Adapt the benchmark accordingly.
+
+* Publish `t` as a synonym for `set` or `map`.
+
 * Implement `find_value_else_add`?
 
 * Add `fit`, which decreases an existing table's capacity so as
@@ -31,9 +40,6 @@
 ## Benchmark
 
 * Benchmark more operations, including `mem`.
-
-* Find out why inserting consecutive integers into a balanced binary tree
-  is 10x faster than inserting random integers.
 
 ## Cleanup
 
