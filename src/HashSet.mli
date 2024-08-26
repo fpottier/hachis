@@ -19,15 +19,15 @@ include module type of Signatures
 
 (**The functor [Make] takes three parameters: [A], [S], [V].
 
-   The parameter [A] is a minimal implementation of arrays of elements. Only
-   [make], [length], [unsafe_get], and [unsafe_set] are needed.
+   The module [A] is a minimal implementation of arrays of elements. Only
+   [make], [copy], [length], [unsafe_get], and [unsafe_set] are needed.
 
-   The parameter [S] provides two sentinel values, [void] and [tomb]. These
+   The module [S] provides two sentinel values, [void] and [tomb]. These
    values must be distinct: [void != tomb] must hold. Furthermore, whenever
-   the user inserts or looks up an element [x] in the set, [x] must not be a
-   sentinel: [x != void && x != tomb] must hold.
+   the user inserts or looks up an element [x], this element must not be a
+   sentinel: that is, [x != void && x != tomb] must hold.
 
-   The parameter [V] provides a hash function [hash] and an equivalence test
+   The module [V] provides a hash function [hash] and an equivalence test
    [equal]. (Yes, the {i equivalence} function is conventionally named
    [equal].) The hash function must respect this equivalence: that is,
    [equiv x y] must imply [hash x = hash y]. *)
