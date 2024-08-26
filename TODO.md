@@ -22,6 +22,7 @@
   at creation time.
 
 * Add missing operations:
+  `find` (synonym for `find_value` in hash maps),
   `find_opt`,
   `replace`,
   `filter_map_inplace`,
