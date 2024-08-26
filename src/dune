@@ -16,12 +16,12 @@
 (rule
   (targets HashSet.ml)
   (deps Table.cppo.ml)
-  (action (run %{bin:cppo} -D SET Table.cppo.ml -o %{targets})))
+  (action (run %{bin:cppo} -D SET %{deps} -o %{targets})))
 
 (rule
   (targets HashMap.ml)
   (deps Table.cppo.ml)
-  (action (run %{bin:cppo} -D MAP Table.cppo.ml -o %{targets})))
+  (action (run %{bin:cppo} -D MAP %{deps} -o %{targets})))
 
 ;; Request documentation.
 (documentation)
