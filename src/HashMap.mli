@@ -9,7 +9,7 @@
 (*       License, with an exception, as described in the file LICENSE.        *)
 (******************************************************************************)
 
-open Signatures
+include module type of Signatures
 
 module Make
 (K : ARRAY)

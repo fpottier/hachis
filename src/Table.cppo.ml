@@ -17,7 +17,7 @@
 (* If the table is a map, then we refer to the elements of the domain as
    keys, and we refer to the elements of the codomain as values. *)
 
-open Signatures
+include Signatures
 
 module[@inline] Make
 (K : ARRAY)
