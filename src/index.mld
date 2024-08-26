@@ -2,10 +2,11 @@
 
 [hachis] is an OCaml library that offers {b hash sets} and {b hash maps}.
 
-These data structures handle collisions by via {i linear probing},
+These data structures handle collisions by via {{: https://en.wikipedia.org/wiki/Linear_probing} linear probing},
 a technique that relies on linear searches within an array. All of
-the data is stored within one or two large arrays. As a result,
-these data structures offer good locality.
+the data is stored within one large array (for hash sets)
+or two large arrays (for hash maps).
+As a result, these data structures offer good locality.
 + For {b hash sets}, use the functor
   {!Hachis.HashSet.Make}.
 + For {b hash maps}, use the functor
@@ -26,10 +27,10 @@ pointer to [v], causing the value [v] to remain reachable in the eyes
 of the garbage collector. This problem can be avoided by explicitly
 calling [reset] or [fit].
 
-[hachis]'s higher-order operations {b do not detect an attempt to modify a
-vector while an operation is in progress}. For example, in [iter f m], the
-function [f] must not modify the map [m], but a violation of this rule
-is not detected by [hachis].
+[hachis]'s higher-order operations {b do not detect an attempt to
+modify a set or map while an operation is in progress}. For example,
+in [iter f m], the function [f] must not modify the map [m], but a
+violation of this rule is not detected by [hachis].
 
 {1 Installation and Usage}
 
