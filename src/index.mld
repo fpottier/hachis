@@ -1,6 +1,15 @@
 {0 Hachis}
 
-[hachis] is an OCaml library that offers [...].
+[hachis] is an OCaml library that offers {b hash sets} and {b hash maps}.
+
+These data structures handle collisions by via {i linear probing},
+a technique that relies on linear searches within an array. All of
+the data is stored within one or two large arrays. As a result,
+these data structures offer good locality.
++ For {b hash sets}, use the functor
+  {!Hachis.HashSet.Make}.
++ For {b hash maps}, use the functor
+  {!Hachis.HashMap.Make}.
 
 {1 Installation and Usage}
 
