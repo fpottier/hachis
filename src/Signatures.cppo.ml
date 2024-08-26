@@ -153,11 +153,9 @@ module type SET = sig
 
   (** {2 Cardinality} *)
 
-  type population = int
-
   (**[population s] returns the cardinality of the set [s],
      that is, the number of inhabitants of this set. *)
-  val population : set -> population
+  val population : set -> int
 
   (** {2 Management} *)
 
@@ -293,11 +291,9 @@ module type MAP = sig
 
   (** {2 Cardinality} *)
 
-  type population = int
-
   (**[population m] returns the cardinality of the map [m],
      that is, the number of inhabitants of this map. *)
-  val population : map -> population
+  val population : map -> int
 
   (** {2 Management} *)
 

@@ -7,7 +7,7 @@
 ;; Warnings are enabled in development builds and disabled in release builds.
 ;; Assertions are disabled in release builds.
 (env
-  (dev     (flags :standard -w @A-4-44))
+  (dev     (flags :standard -w A))
   (release (flags :standard -noassert ))
 )
 

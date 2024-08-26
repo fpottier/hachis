@@ -136,11 +136,6 @@ type hash =
 type index =
   int
 
-(* A population count. *)
-
-type population =
-  int
-
 (* An array size. *)
 
 type capacity =
@@ -159,7 +154,7 @@ type capacity =
    would be zero, yet every search would diverge, as it would never find an
    empty slot. *)
 
-let[@inline] population (s : table) : population =
+let[@inline] population (s : table) =
   s.population
 
 let[@inline] capacity (s : table) : capacity =
