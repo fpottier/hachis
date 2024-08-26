@@ -23,7 +23,7 @@ module[@inline] Make
 (K : ARRAY)
 (S : SENTINELS with type t = K.element)
 (H : HashedType with type t = K.element)
-#ifdef MAP
+#ifdef ENABLE_MAP
 (V : sig include ARRAY val empty : t end)
 #endif
 = struct
@@ -33,7 +33,7 @@ open S
 type key =
   K.element
 
-#ifdef MAP
+#ifdef ENABLE_MAP
 type value =
   V.element
 #endif
@@ -50,13 +50,12 @@ let equiv : key -> key -> bool =
 (* [ovalue] stands for nothing if the table is a set,
    and stands for [value] if the table is a map. *)
 
-#ifdef SET
-#define ov
-#define ovalue
-#endif
-#ifdef MAP
+#ifdef ENABLE_MAP
 #define ov (v : value)
 #define ovalue value
+#else
+#define ov
+#define ovalue
 #endif
 
 (* -------------------------------------------------------------------------- *)
@@ -118,7 +117,7 @@ type table = {
   mutable mask       : int;
   (* The key array. The length of this array is a power of two. *)
   mutable key        : K.t;
-  #ifdef MAP
+  #ifdef ENABLE_MAP
   (* The value array. If [occupation] is nonzero, then the key array and
      the value array have equal lengths. Otherwise, the value array can
      have zero length. (It is lazily allocated.) *)
@@ -241,7 +240,7 @@ let check s =
     (* The [value] array either has length zero or has the same length
        as the [key] array. (It is lazily allocated.) If the population
        is nonzero then both arrays must have the same length. *)
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     assert (V.length s.value = 0 || V.length s.value = capacity);
     assert (    s.occupation = 0 || V.length s.value = capacity);
     #endif
@@ -268,7 +267,7 @@ let[@inline] crowded s =
 
 (* The value array is lazily allocated. *)
 
-#ifdef MAP
+#ifdef ENABLE_MAP
 
 let value_array_is_allocated s =
   V.length s.value > 0
@@ -343,7 +342,7 @@ let rec find_key (s : table) (x : key) (j : int) : key =
        otherwise, skip this slot and continue searching. *)
     if equiv x y then y else find_key s x (next s j)
 
-#ifdef MAP
+#ifdef ENABLE_MAP
 
 (* [find_value] is analogous to [find_key], but returns the value associated
    with the key [y], instead of the key [y] itself. *)
@@ -485,7 +484,7 @@ let rec add (s : table) (x : key) ov (j : int) : bool =
   if c == void then begin
     (* [x] is not in the table, and can be inserted here. *)
     K.unsafe_set s.key j x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
@@ -525,7 +524,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
     (* [x] is not in the table. Insert it at index [t],
        which currently contains a tombstone. *)
     K.unsafe_set s.key t x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     (* Because we have seen a tombstone, the [value] array must have
        been allocated already. *)
     set_value s t v;
@@ -546,7 +545,7 @@ and add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) : bool =
          for [x] or [y] will be faster. Furthermore, this can turn one or
          more occupied slots back into void slots. *)
       K.unsafe_set s.key t y;
-      #ifdef MAP
+      #ifdef ENABLE_MAP
       set_value s t (get_value s j);
       #endif
       (* Zap slot [j] and return [false]. *)
@@ -579,7 +578,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
   let c = K.unsafe_get s.key j in
   if c == void then begin
     K.unsafe_set s.key j x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
@@ -589,7 +588,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
     (* Because [x] is not in the table, it can be safely inserted here,
        by overwriting this tombstone. *)
     K.unsafe_set s.key j x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     set_value s j v;
     #endif
     s.population <- s.population + 1
@@ -617,7 +616,7 @@ let rec find_key_else_add (s : table) (x : key) ov (j : int) : key =
   if c == void then begin
     (* [x] is not in the table. Insert it, then raise an exception. *)
     K.unsafe_set s.key j x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     cautiously_set_value s j v;
     #endif
     s.population <- s.population + 1;
@@ -651,7 +650,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
        which currently contains a tombstone,
        then raise an exception. *)
     K.unsafe_set s.key t x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     (* Because we have seen a tombstone, the [value] array must have
        been allocated already. *)
     set_value s t v;
@@ -674,7 +673,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
          faster. Furthermore, this can turn one or more occupied slots back
          into void slots. *)
       K.unsafe_set s.key t y;
-      #ifdef MAP
+      #ifdef ENABLE_MAP
       set_value s t (get_value s j);
       #endif
       (* Zap slot [j] and return [y]. *)
@@ -703,7 +702,7 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   assert (c != tomb);
   if c == void then begin
     K.unsafe_set s.key j x;
-    #ifdef MAP
+    #ifdef ENABLE_MAP
     cautiously_set_value s j v;
     #endif
   end
@@ -725,7 +724,7 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
 let resize (s : table) (factor : int) =
   assert (is_power_of_two factor);
   let old_key = s.key in
-  #ifdef MAP
+  #ifdef ENABLE_MAP
   let old_value = s.value in
   #endif
   let old_capacity = capacity s in
@@ -734,7 +733,7 @@ let resize (s : table) (factor : int) =
   (* Resize the [key] array. *)
   s.key <- K.make capacity void;
   (* Resize the [value] array, unless its length is zero. *)
-  #ifdef MAP
+  #ifdef ENABLE_MAP
   if V.length old_value > 0 then begin
     assert (old_capacity > 0);
     assert (V.length old_value = old_capacity);
@@ -753,7 +752,7 @@ let resize (s : table) (factor : int) =
     let c = K.unsafe_get old_key k in
     if is_not_sentinel c then
       let x = c in
-      #ifdef MAP
+      #ifdef ENABLE_MAP
       assert (s.population > 0);
       assert (V.length old_value = old_capacity);
       let v = V.unsafe_get old_value k in
@@ -774,7 +773,7 @@ let create () =
   and occupation = 0
   and mask = capacity - 1
   and key = K.make capacity void
-  #ifdef MAP
+  #ifdef ENABLE_MAP
   and value = V.empty
   #endif
   in
@@ -794,7 +793,7 @@ let[@inline] find_key (s : table) (x : key) : key =
   validate x;
   find_key s x (start s x)
 
-#ifdef MAP
+#ifdef ENABLE_MAP
 
 let[@inline] find_value (s : table) (x : key) : value =
   validate x;
@@ -865,7 +864,7 @@ let reset (s : table) =
   s.occupation <- occupation;
   s.mask <- mask;
   s.key <- key;
-  #ifdef MAP
+  #ifdef ENABLE_MAP
   s.value <- V.empty;
   #endif
   ()
@@ -884,7 +883,7 @@ let[@inline] cleanup (s : table) =
 let copy (s : table) : table =
   { s with
     key = K.copy s.key
-  #ifdef MAP
+  #ifdef ENABLE_MAP
   ; value = V.copy s.value
   #endif
   }
@@ -898,7 +897,7 @@ let foreach_key f (s : table) =
         f x
     done
 
-#ifdef MAP
+#ifdef ENABLE_MAP
 
 let foreach_key_value f (s : table) =
   if s.population > 0 then
@@ -912,23 +911,7 @@ let foreach_key_value f (s : table) =
 
 #endif
 
-#ifdef SET
-
-let show show_key (s : table) =
-  let b = Buffer.create 32 in
-  Buffer.add_string b "{";
-  let first = ref true in
-  foreach_key (fun x ->
-    if not !first then Buffer.add_string b ", ";
-    Buffer.add_string b (show_key x);
-    first := false
-  ) s;
-  Buffer.add_string b "}";
-  Buffer.contents b
-
-#endif
-
-#ifdef MAP
+#ifdef ENABLE_MAP
 
 let show show_key show_value (s : table) =
   let b = Buffer.create 32 in
@@ -939,6 +922,20 @@ let show show_key show_value (s : table) =
     Buffer.add_string b (show_key x);
     Buffer.add_string b " ↦ ";
     Buffer.add_string b (show_value v);
+    first := false
+  ) s;
+  Buffer.add_string b "}";
+  Buffer.contents b
+
+#else
+
+let show show_key (s : table) =
+  let b = Buffer.create 32 in
+  Buffer.add_string b "{";
+  let first = ref true in
+  foreach_key (fun x ->
+    if not !first then Buffer.add_string b ", ";
+    Buffer.add_string b (show_key x);
     first := false
   ) s;
   Buffer.add_string b "}";
@@ -1005,17 +1002,15 @@ let statistics (s : table) : string =
 
 (* Final packaging. *)
 
-#ifdef SET
+#ifdef ENABLE_MAP
+type map = table
+let iter = foreach_key_value
+#else
 type element = key
 type set = table
 let find = find_key
 let find_else_add = find_key_else_add
 let iter = foreach_key
-#endif
-
-#ifdef MAP
-type map = table
-let iter = foreach_key_value
 #endif
 
 end
