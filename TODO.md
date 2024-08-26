@@ -46,8 +46,6 @@
 
 * Finish cleaning up the code.
 
-* Write documentation. Note that this data structure is sequential.
-  Note that it does not protect against memory leaks.
-  Note that iteration can be slow unless `fit` has been called.
+* Write documentation.
 
 * Release.
