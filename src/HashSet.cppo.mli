@@ -32,10 +32,10 @@
    function must respect this equivalence: that is, [equiv x y] must imply
    [hash x = hash y].
 
-   The module [S] provides two sentinel values, which by convention are named
-   [void] and [tomb]. These values must be distinct: [void != tomb] must hold.
-   Furthermore, whenever the user inserts or looks up an element [x], this
-   element must not be a sentinel: that is, [x != void && x != tomb] must
+   The module [S] provides two sentinel elements, which by convention are
+   named [void] and [tomb]. These values must be distinct: [void != tomb] must
+   hold. Furthermore, whenever the user inserts or looks up an element [x],
+   this element must not be a sentinel: that is, [x != void && x != tomb] must
    hold.
 
    The module [K] is a minimal implementation of arrays. Only [make],
@@ -54,10 +54,10 @@ module Make_
    function must respect this equivalence: that is, [equiv x y] must imply
    [hash x = hash y].
 
-   The module [S] provides two sentinel values, which by convention are named
-   [void] and [tomb]. These values must be distinct: [void != tomb] must hold.
-   Furthermore, whenever the user inserts or looks up an element [x], this
-   element must not be a sentinel: that is, [x != void && x != tomb] must
+   The module [S] provides two sentinel elements, which by convention are
+   named [void] and [tomb]. These values must be distinct: [void != tomb] must
+   hold. Furthermore, whenever the user inserts or looks up an element [x],
+   this element must not be a sentinel: that is, [x != void && x != tomb] must
    hold. *)
 module Make
 (H : HashedType)
