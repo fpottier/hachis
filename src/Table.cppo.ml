@@ -19,10 +19,10 @@
 
 #include "Signatures.cppo.ml"
 
-module[@inline] Make
-(K : ARRAY)
-(S : SENTINELS with type t = K.element)
-(H : HashedType with type t = K.element)
+module[@inline] Make_
+(H : HashedType)
+(S : SENTINELS with type t = H.t)
+(K : ARRAY with type element = H.t)
 #ifdef ENABLE_MAP
 (V : sig include ARRAY val empty : t end)
 #endif
@@ -1014,3 +1014,49 @@ let iter = foreach_key
 #endif
 
 end
+
+(* -------------------------------------------------------------------------- *)
+
+(* [MakeArray(X)] creates a copy of [Stdlib.Array] that is specialized for
+   array elements of type [X.t]. *)
+
+module[@inline] MonoArray
+(X : sig type t end)
+: sig
+  include ARRAY with type element = X.t
+#ifdef ENABLE_MAP
+  val empty : t
+#endif
+end
+= struct
+  type element = X.t
+  type t = element array
+#ifdef ENABLE_MAP
+  let empty = [||]
+#endif
+  let make = Array.make
+  let copy = Array.copy
+  let length = Array.length
+  let[@inline] unsafe_get (a : t) i = Array.unsafe_get a i
+  let[@inline] unsafe_set (a : t) i x = Array.unsafe_set a i x
+end
+
+(* -------------------------------------------------------------------------- *)
+
+(* For people who want to apply the functor [_Make] to [Stdlib.Array] (twice),
+   we propose a functor, [Make], that is easier to use. *)
+
+module[@inline] Make
+(H : HashedType)
+(S : SENTINELS with type t = H.t)
+#ifdef ENABLE_MAP
+(V : sig type t end)
+#endif
+=
+  Make_
+    (H)
+    (S)
+    (MonoArray(H))
+#ifdef ENABLE_MAP
+    (MonoArray(V))
+#endif

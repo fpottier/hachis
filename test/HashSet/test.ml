@@ -11,12 +11,6 @@
 
 open Monolith
 
-module A = struct
-  include Array
-  type element = int
-  type t = element array
-end
-
 (* We use nonnegative integer elements, and equip them with an equivalence
    relation that is not equality. We view two integer elements as equivalent
    if they are equal except possibly in their least significant bit. *)
@@ -32,7 +26,7 @@ end
 module S = struct type t = int let void = (-1) let tomb = (-2) end
 
 module R = Reference.Make(V)
-module C = Hachis.HashSet.Make(A)(S)(V)
+module C = Hachis.HashSet.Make(V)(S)
 
 (* -------------------------------------------------------------------------- *)
 

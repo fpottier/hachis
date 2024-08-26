@@ -17,22 +17,27 @@
    flambda. The mainstream OCaml compiler does not inline functors and
    produces code that is about twice slower. *)
 
-(**The functor [Make] takes three parameters: [A], [S], [V].
+(**The functor [Make_] takes three parameters: [H], [S], [A].
 
-   The module [A] is a minimal implementation of arrays of elements. Only
-   [make], [copy], [length], [unsafe_get], and [unsafe_set] are needed.
+   The module [H] provides a hash function [hash] and an equivalence test
+   [equal]. (Yes, the {i equivalence} function is conventionally named
+   [equal].) The hash function must respect this equivalence: that is,
+   [equiv x y] must imply [hash x = hash y].
 
    The module [S] provides two sentinel values, [void] and [tomb]. These
    values must be distinct: [void != tomb] must hold. Furthermore, whenever
    the user inserts or looks up an element [x], this element must not be a
    sentinel: that is, [x != void && x != tomb] must hold.
 
-   The module [V] provides a hash function [hash] and an equivalence test
-   [equal]. (Yes, the {i equivalence} function is conventionally named
-   [equal].) The hash function must respect this equivalence: that is,
-   [equiv x y] must imply [hash x = hash y]. *)
+   The module [A] is a minimal implementation of arrays. Only [make],
+   [copy], [length], [unsafe_get], and [unsafe_set] are needed. *)
+module Make_
+(H : HashedType)
+(_ : SENTINELS with type t = H.t)
+(_ : ARRAY with type element = H.t)
+: SET with type element = H.t
+
 module Make
-(A : ARRAY)
-(_ : SENTINELS with type t = A.element)
-(V : HashedType with type t = A.element)
-: SET with type element = V.t
+(H : HashedType)
+(_ : SENTINELS with type t = H.t)
+: SET with type element = H.t

@@ -58,13 +58,6 @@ module V = struct
   let compare x y = Int.compare (normalize x) (normalize y)
 end
 
-module A = struct
-  include Array
-  type element = int
-  type t = element array
-  let empty = [||]
-end
-
 (* We use -1 and -2 as sentinels. Our generators must be careful not
    to produce these values. *)
 module S = struct type t = int let void = (-1) let tomb = (-2) end
@@ -72,7 +65,7 @@ module S = struct type t = int let void = (-1) let tomb = (-2) end
 (* Instantiate Hachis.HashSet. *)
 
 module HashSet : API = struct
-  include Hachis.HashSet.Make(A)(S)(V)
+  include Hachis.HashSet.Make(V)(S)
   let[@inline] add s x = ignore (add s x)
   let[@inline] remove s x =
     try ignore (remove s x) with Not_found -> ()
@@ -81,7 +74,7 @@ end
 (* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
 
 module HectorHashSet : API = struct
-  include Hachis.HashSet.Make(Hector.IntArray)(S)(V)
+  include Hachis.HashSet.Make_(V)(S)(Hector.IntArray)
   let[@inline] add s x = ignore (add s x)
   let[@inline] remove s x =
     try ignore (remove s x) with Not_found -> ()
@@ -90,7 +83,7 @@ end
 (* Instantiate [Hachis.HashMap] so as to respect [API]. *)
 
 module HashMap : API = struct
-  include Hachis.HashMap.Make(A)(S)(V)(A)
+  include Hachis.HashMap.Make(V)(S)(V)
   type element = key
   type set = map
   let[@inline] add s x = ignore (add s x x)
