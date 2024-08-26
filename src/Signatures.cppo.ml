@@ -10,26 +10,70 @@
 (*                                                                            *)
 (******************************************************************************)
 
-module type ARRAY = sig
-  type element
+module type HashedType = sig
+
+  (**A type of elements (in a hash set) or keys (in a hash map). *)
   type t
-  val make : int -> element -> t
-  val copy : t -> t
-  val length : t -> int
-  val unsafe_get : t -> int -> element
-  val unsafe_set : t -> int -> element -> unit
+
+  (**An equivalence test on keys. The function [equal x y] returns
+     [true] if and only if the keys [x] and [y] are equivalent. It is
+     up to the user to define an equivalence relation on keys. In the
+     simplest and most common case, equivalence is just equality. *)
+  val equal : t -> t -> bool
+
+  (**A hash function on keys. This function must be compatible with
+     equivalence: that is, it must be the case that [equiv x y] implies
+     [hash x = hash y]. *)
+  val hash  : t -> int
+
 end
 
 module type SENTINELS = sig
+
+  (**A type of elements (in a hash set) or keys (in a hash map). *)
   type t
+
+  (**A sentinel value is a special value that must never be supplied as an
+     argument to an operation such as [add] or [find]. A non-sentinel value
+     [x] satisfies [x != void && x != tomb]. The sentinel values [void] and
+     [tomb] must be distinct: that is, [void != tomb] must hold. *)
   val void : t
+
+  (**A sentinel value is a special value that must never be supplied as an
+     argument to an operation such as [add] or [find]. A non-sentinel value
+     [x] satisfies [x != void && x != tomb]. The sentinel values [void] and
+     [tomb] must be distinct: that is, [void != tomb] must hold. *)
   val tomb : t
+
 end
 
-module type HashedType = sig
+module type ARRAY = sig
+
+  (**The type of elements. *)
+  type element
+
+  (**The type of arrays. *)
   type t
-  val hash  : t -> int
-  val equal : t -> t -> bool
+
+  (**[make n x] returns a new array of length [n], where every slot contains
+     the value [x]. *)
+  val make : int -> element -> t
+
+  (**[copy a] returns a new array whose length and content are those of
+     the array [a]. *)
+  val copy : t -> t
+
+  (**[length a] returns the length of the array [a]. *)
+  val length : t -> int
+
+  (**[unsafe_get a i] returns the element found at index [i] in the array
+     [a]. {b The index [i] must be valid}. *)
+  val unsafe_get : t -> int -> element
+
+  (**[unsafe_set a i x] writes the value [x] at index [i] in the array
+     [a]. {b The index [i] must be valid}. *)
+  val unsafe_set : t -> int -> element -> unit
+
 end
 
 module type SET = sig
