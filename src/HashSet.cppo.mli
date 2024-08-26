@@ -9,7 +9,7 @@
 (*       License, with an exception, as described in the file LICENSE.        *)
 (******************************************************************************)
 
-include module type of Signatures
+#include "Signatures.cppo.ml"
 
 (**This module implements a hash set as a flat array, using linear probing. *)
 

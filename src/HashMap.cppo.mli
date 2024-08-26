@@ -9,7 +9,7 @@
 (*       License, with an exception, as described in the file LICENSE.        *)
 (******************************************************************************)
 
-include module type of Signatures
+#include "Signatures.cppo.ml"
 
 module Make
 (K : ARRAY)

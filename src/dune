@@ -18,26 +18,26 @@
 
 (rule
   (targets HashSet.ml)
-  (deps Table.cppo.ml)
-  (action (run %{bin:cppo} %{deps} -o %{targets})))
+  (deps Signatures.cppo.ml)
+  (action (run %{bin:cppo} %{dep:Table.cppo.ml} -o %{targets})))
 
 (rule
   (targets HashMap.ml)
-  (deps Table.cppo.ml)
-  (action (run %{bin:cppo} -D ENABLE_MAP %{deps} -o %{targets})))
+  (deps Signatures.cppo.ml)
+  (action (run %{bin:cppo} -D ENABLE_MAP %{dep:Table.cppo.ml} -o %{targets})))
 
 ;; Each of the source files HashSet.cppo.mli and HashMap.cppo.mli is
 ;; preprocessed independently to obtain HashSet.mli and HashMap.mli.
 
 (rule
   (targets HashSet.mli)
-  (deps HashSet.cppo.mli)
-  (action (run %{bin:cppo} %{deps} -o %{targets})))
+  (deps Signatures.cppo.ml)
+  (action (run %{bin:cppo} %{dep:HashSet.cppo.mli} -o %{targets})))
 
 (rule
   (targets HashMap.mli)
-  (deps HashMap.cppo.mli)
-  (action (run %{bin:cppo} %{deps} -o %{targets})))
+  (deps Signatures.cppo.ml)
+  (action (run %{bin:cppo} %{dep:HashMap.cppo.mli} -o %{targets})))
 
 ;; Request documentation.
 (documentation)
