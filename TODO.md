@@ -38,14 +38,12 @@
 
 * Add tests of `show`, with an expected output.
 
-## Benchmark
-
-* Benchmark more operations, including `mem`.
-
 ## Cleanup
+
+* `clear` should use array `fill` instead of a loop.
 
 * Finish cleaning up the code.
 
-* Write documentation.
+* Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
 
 * Release.
