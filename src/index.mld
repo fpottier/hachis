@@ -11,6 +11,26 @@ these data structures offer good locality.
 + For {b hash maps}, use the functor
   {!Hachis.HashMap.Make}.
 
+{1:caution Words of Caution}
+
+[hachis]'s sets and maps are {b not thread-safe} and {b do not include a protection
+against data races}: concurrent accesses to a set or map, where at least one
+thread attempts to modify the set or map, are forbidden and {b can compromise
+memory safety} (that is, they can cause a hard crash or silent memory
+corruption). Concurrent read accesses are safe.
+
+[hachis]'s maps do {b not include a protection against memory leaks}.
+That is, after a pair of a key [x] and value [v] has been deleted from
+a map [m] via [remove m x], the map [m] can still contain a spurious
+pointer to [v], causing the value [v] to remain reachable in the eyes
+of the garbage collector. This problem can be avoided by explicitly
+calling [reset] or [fit].
+
+[hachis]'s higher-order operations {b do not detect an attempt to modify a
+vector while an operation is in progress}. For example, in [iter f m], the
+function [f] must not modify the map [m], but a violation of this rule
+is not detected by [hachis].
+
 {1 Installation and Usage}
 
 Type [opam install hachis].
