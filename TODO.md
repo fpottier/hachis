@@ -19,7 +19,8 @@
 * Add a type `statistics` and a printer for it.
 
 * Add a way of choosing the table's capacity and max occupancy rate
-  at creation time.
+  at creation time. (Give `Make_` an extra parameter.) Check whether
+  this degrades performance (with and without flambda).
 
 * Add missing operations:
   `find` (synonym for `find_value` in hash maps),
