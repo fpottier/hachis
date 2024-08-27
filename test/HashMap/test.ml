@@ -48,7 +48,7 @@ let () = dprintf "          \
             let equal x y = Int.equal (normalize x) (normalize y)
             let hash x = Hashtbl.hash (normalize x)
           end
-          open Hachis.HashMap.Make(A)(S)(V)(A)
+          open Hachis.HashMap.Make(V)(S)(V)
 "
 
 (* -------------------------------------------------------------------------- *)
@@ -92,7 +92,7 @@ let () = dprintf "          \
             let xvs = ref [] in
             iter (fun x v -> xvs := (x, v) :: !xvs) m;
             let compare (x1, _) (x2, _) = Int.compare x1 x2 in
-            List.sort compare !xvs
+            List.sort compare !xvs;;
 "
 
 (* -------------------------------------------------------------------------- *)
