@@ -256,11 +256,23 @@ let initial_capacity =
 let max_occupancy =
   105 (* 105/128 = 0.82 *)
 
+(* [crowded] determines whether the table's maximum occupancy rate has
+   been exceeded. It is paremeterized by the table's current occupation
+   and capacity. *)
+
 let[@inline] crowded occupation capacity =
   128 * occupation > max_occupancy * capacity
 
+(* [full] determines whether the table is full. A table is full when
+   it contains no [void] slots, that is, when its occupation equals
+   its capacity. *)
+
 let[@inline] full occupation capacity =
   occupation = capacity
+
+(* [crowded_or_full] is the disjunction of the previous two criteria.
+   See [possibly_grow] for an explanation of why we use two separate
+   criteria. *)
 
 let[@inline] crowded_or_full occupation capacity =
   crowded occupation capacity || full occupation capacity
