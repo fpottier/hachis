@@ -256,8 +256,11 @@ let initial_capacity =
 let max_occupancy =
   105 (* 105/128 = 0.82 *)
 
-let[@inline] crowded s =
-  128 * s.occupation > max_occupancy * capacity s
+let[@inline] crowded occupation capacity =
+  128 * occupation > max_occupancy * capacity
+
+let[@inline] full occupation capacity =
+  occupation = capacity
 
 (* -------------------------------------------------------------------------- *)
 
@@ -812,9 +815,11 @@ let[@inline] possibly_resize (s : table) =
      [max_occupancy + 1/capacity <= 1]. Then, the maximum occupancy check,
      alone, would ensure the existence of at least one [void] slot. We prefer
      to remove this constraint, at the cost of performing two tests. *)
-  if crowded s || s.occupation = capacity s then
+  let o = s.occupation
+  and c = capacity s in
+  if crowded o c || full o c then
     (* Double the capacity of the [key] array. *)
-    resize s (2 * capacity s);
+    resize s (2 * c);
   (* There must always remain at least one empty slot. Otherwise, searches
      would diverge. *)
   assert (s.occupation < capacity s)
