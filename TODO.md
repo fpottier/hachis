@@ -13,9 +13,6 @@
 
 * Implement `find_value_else_add`?
 
-* Add `fit`, which decreases an existing table's capacity so as
-  to fit its population.
-
 * Add a type `statistics` and a printer for it.
 
 * Add a way of choosing the table's capacity and max occupancy rate
