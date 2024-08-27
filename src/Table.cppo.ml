@@ -709,25 +709,25 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [resize s factor] allocates a new key array whose capacity is [factor]
-   times the capacity of the current [key] array. Then, it copies the content
-   of the old key array to the new one. *)
+(* [resize s new_capacity] allocates a new key array whose capacity is
+   [new_capacity]. Then, it copies the content of the old key array to
+   the new one. *)
 
-(* The [factor] parameter is typically 1 or 2. It must be a power of two. *)
+(* [new_capacity] must be a power of two, and must be large enough to
+   ensure that the table is not crowded. *)
 
 (* The [value] array is resized in a similar way. *)
 
-let resize (s : table) (factor : int) =
-  assert (is_power_of_two factor);
+let resize (s : table) (new_capacity : capacity) =
+  assert (is_power_of_two new_capacity);
   let old_key = s.key in
   #ifdef ENABLE_MAP
   let old_value = s.value in
   #endif
   let old_capacity = capacity s in
-  let capacity = factor * old_capacity in
-  s.mask <- capacity - 1;
+  s.mask <- new_capacity - 1;
   (* Resize the [key] array. *)
-  s.key <- K.make capacity void;
+  s.key <- K.make new_capacity void;
   (* Resize the [value] array, unless its length is zero. *)
   #ifdef ENABLE_MAP
   if V.length old_value > 0 then begin
@@ -814,7 +814,7 @@ let[@inline] possibly_resize (s : table) =
      to remove this constraint, at the cost of performing two tests. *)
   if crowded s || s.occupation = capacity s then
     (* Double the capacity of the [key] array. *)
-    resize s 2;
+    resize s (2 * capacity s);
   (* There must always remain at least one empty slot. Otherwise, searches
      would diverge. *)
   assert (s.occupation < capacity s)
@@ -869,7 +869,7 @@ let[@inline] cleanup (s : table) =
   (* If there are any tombstones, *)
   if s.occupation > s.population then
     (* then copy just the live keys to a new key array. *)
-    resize s 1
+    resize s (capacity s)
 
 (* One might ask whether [copy] should return an identical copy or
    construct a fresh hash set that does not contain any tombstones. We
