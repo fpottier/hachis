@@ -80,6 +80,9 @@ end)
   let cleanup _m =
     ()
 
+  let fit _m =
+    ()
+
   let clear =
     H.clear
 

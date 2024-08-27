@@ -176,6 +176,11 @@ module type SET = sig
      size of the internal data array. *)
   val cleanup : set -> unit
 
+  (**[fit s] shrinks the internal data array of the set [s], if possible,
+     so as to save space. The time complexity of this operation is linear
+     in the size of the internal data array. *)
+  val fit : set -> unit
+
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
   val statistics : set -> string
@@ -313,6 +318,11 @@ module type MAP = sig
      complexity of this operation is linear in the size of the internal
      data arrays. *)
   val cleanup : map -> unit
+
+  (**[fit m] shrinks the internal data array of the map [m], if possible,
+     so as to save space. The time complexity of this operation is linear
+     in the size of the internal data array. *)
+  val fit : map -> unit
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)

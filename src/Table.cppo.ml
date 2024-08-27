@@ -828,6 +828,25 @@ let[@inline] possibly_grow (s : table) =
      would diverge. *)
   assert (s.occupation < capacity s)
 
+let rec possibly_shrink (s : table) (new_capacity : capacity) =
+  assert (is_power_of_two new_capacity);
+  assert (initial_capacity <= new_capacity);
+  assert (new_capacity <= capacity s);
+  if new_capacity = initial_capacity
+  || crowded_or_full s.occupation (new_capacity / 2) then begin
+    (* The capacity cannot be divided by two. If it is less than the
+       current capacity, then the table must be resized. Otherwise,
+       there is nothing to do. *)
+    if new_capacity < capacity s then
+      resize s new_capacity
+  end
+  else
+    (* The capacity can be divided by two. *)
+    possibly_shrink s (new_capacity / 2)
+
+let[@inline] fit (s : table) =
+  possibly_shrink s (capacity s)
+
 let add (s : table) (x : key) ov : bool =
   validate x;
   let was_added = add s x ov (start s x) in

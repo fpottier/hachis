@@ -132,6 +132,9 @@ let () =
   declare "cleanup" spec R.cleanup C.cleanup;
 
   let spec = map ^> unit in
+  declare "fit" spec R.fit C.fit;
+
+  let spec = map ^> unit in
   declare "clear" spec R.clear C.clear;
 
   let spec = map ^> unit in
