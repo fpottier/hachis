@@ -707,7 +707,7 @@ and find_key_else_add_at_tombstone (s : table) (x : key) ov (t : int) (j : int) 
 
 (* [x] is always inserted. No Boolean result is returned. *)
 
-(* This auxiliary function is used by [resize]. *)
+(* This auxiliary function is used by [resize] and by [elim]. *)
 
 let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
   assert (is_not_sentinel x);
@@ -777,6 +777,120 @@ let resize (s : table) (new_capacity : capacity) =
   done;
   (* The population is unchanged. There are no tombstones any more,
      so [s.occupation] now coincides with [s.population]. *)
+  s.occupation <- s.population
+
+(* -------------------------------------------------------------------------- *)
+
+(* Eliminating tombstones, in place, in the [key] array. *)
+
+(* Roughly speaking, all tombstones are turned into [void] slots, and all
+   keys that used to follow a tombstone must be relocated. *)
+
+(* We use a state machine with 3 states, as follows:
+
+   - In state [init], we have not yet encountered a void slot; we skip all
+     keys and tombstones until we encounter one.
+
+   - In state [void], we have encountered a void slot, followed with zero,
+     one, or more keys. These keys can remain where they are; we skip them.
+
+   - In state [tomb], we have encountered a run of one or more tombstones,
+     which we have changed into void slots. We have then encountered zero,
+     one, or more keys, which we have relocated.
+
+   When we transition out of the initial state, we record the current index;
+   this is the [origin] index. In every state other than [init], if we
+   detect that we have reached [origin] again, after scanning the entire
+   circular array, then we stop. *)
+
+let rec elim_init (s : table) (j : index) : unit =
+  assert (is_index s j);
+  let c = K.unsafe_get s.key j in
+  if c == void then
+    (* Switch from state [init] to state [void]. *)
+    let origin = j in
+    elim_void s origin (next s j)
+  else
+    (* Continue in state [init]. *)
+    elim_init s (next s j)
+
+and elim_void (s : table) (origin : index) (j : index) : unit =
+  assert (is_index s origin);
+  assert (K.unsafe_get s.key origin == void);
+  assert (is_index s j);
+  if origin <> j then
+    let c = K.unsafe_get s.key j in
+    if c == tomb then
+      (* Overwrite this tombstone and switch to state [tomb]. *)
+      write_elim_tomb s origin j
+    else
+      (* Continue in state [void]. *)
+      elim_void s origin (next s j)
+
+and write_elim_tomb (s : table) (origin : index) (j : index) : unit =
+  assert (is_index s origin);
+  assert (K.unsafe_get s.key origin == void);
+  assert (is_index s j);
+  assert (K.unsafe_get s.key j == tomb);
+  (* Overwrite the tombstone at [j] with [void]. *)
+  K.unsafe_set s.key j void;
+  (* Continue at the next slot in state [tomb]. *)
+  elim_tomb s origin (next s j)
+
+and elim_tomb (s : table) (origin : index) (j : index) : unit =
+  assert (is_index s origin);
+  assert (K.unsafe_get s.key origin == void);
+  assert (is_index s j);
+  if origin <> j then
+    let c = K.unsafe_get s.key j in
+    if c == void then
+      (* Switch to state [void]. *)
+      elim_void s origin (next s j)
+    else if c == tomb then
+      (* Overwrite this tombstone and continue in state [tomb]. *)
+      write_elim_tomb s origin j
+    else
+      (* The key [x] must be relocated. *)
+      let x = c in
+      (* Overwrite this slot, effectively removing [x] from the table,
+         without updating [s.population] or [s.occupation]. *)
+      K.unsafe_set s.key j void;
+      (* Read the value [v] that is associated with [x]. *)
+      #ifdef ENABLE_MAP
+      let v = get_value s j in
+      #endif
+      (* Now relocate this key-value pair: insert key [x] with value [v]. *)
+      (* This insertion reads and updates a part of the table that we have
+         already scanned and where we have already eliminated all tombstones,
+         between [origin] (excluded) and [j] (included). *)
+      assert (
+         origin < j && origin < start s x && start s x <= j
+      || j < origin && (origin < start s x || start s x <= j)
+      );
+      add_absent_no_updates s x ov (start s x);
+      (* Continue in state [tomb]. *)
+      elim_tomb s origin (next s j)
+
+(* [elim] is the main entry point for the above state machine. *)
+
+(* [elim s] eliminates all tombstones, in linear time, in place. *)
+
+(* The cost of [elim s] is the cost of scanning the entire [key] array plus
+   the cost of relocating (re-inserting) all of the keys that follow a
+   tombstone. The keys that follow a void slot are not relocated, so do not
+   contribute to the second term in this sum. *)
+
+(* A much simpler way of implementing [elim] would be [resize s (capacity s)],
+   which relocates all keys into a fresh key array. This simpler way is less
+   efficient because it requires allocating a fresh array and relocating *all*
+   keys. *)
+
+let[@inline] elim (s : table) =
+  (* Execute the state machine. We start at index 0, but one could start
+     anywhere. *)
+  let j = 0 in
+  elim_init s j;
+  (* All tombstones are now gone. *)
   s.occupation <- s.population
 
 (* -------------------------------------------------------------------------- *)
@@ -874,10 +988,10 @@ let[@inline] cleanup (s : table) =
   (* First, shrink the table, if its occupation is sufficiently low. *)
   possibly_shrink s (capacity s);
   (* Then, if the table contains any tombstones (which can be the case
-     only if the table was not shrunk above), copy just the live keys
-     to a new key array. *)
+     only if the table was not shrunk above), scan the [key] array and
+     eliminate all tombstones. *)
   if s.occupation > s.population then
-    resize s (capacity s)
+    elim s
 
 let add (s : table) (x : key) ov : bool =
   validate x;
