@@ -39,6 +39,10 @@
   few tombstones, then this seems too costly: it requires re-hashing all
   keys. We could instead scan the key array, looking for tombstone runs.
   After each such run, the following keys must be potentially moved left.
+  This amounts to removing and re-inserting these keys. (Beware of the
+  circular array effect: at the beginning of the scan, until we find a
+  tombstone or a void slot, we do not know whether the keys that we scan
+  must be removed and re-inserted.)
 
 ## Test
 
