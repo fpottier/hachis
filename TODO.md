@@ -32,6 +32,14 @@
   `Make` extends an existing type with one fresh sentinel.
   `MakeMany` extends a type with `n` fresh sentinels.
 
+## Algorithmic improvements
+
+* In `cleanup`, to eliminate all tombstones, we currently copy the whole
+  key array to a new key array of identical capacity. If there are very
+  few tombstones, then this seems too costly: it requires re-hashing all
+  keys. We could instead scan the key array, looking for tombstone runs.
+  After each such run, the following keys must be potentially moved left.
+
 ## Test
 
 * Add tests of `show`, with an expected output.
