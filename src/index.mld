@@ -25,7 +25,7 @@ That is, after a pair of a key [x] and value [v] has been deleted from
 a map [m] via [remove m x], the map [m] can still contain a spurious
 pointer to [v], causing the value [v] to remain reachable in the eyes
 of the garbage collector. This problem can be avoided by explicitly
-calling [reset] or [fit].
+calling [reset].
 
 [hachis]'s higher-order operations {b do not detect an attempt to
 modify a set or map while an operation is in progress}. For example,
