@@ -66,9 +66,6 @@ end) = struct
   let cleanup _s =
     ()
 
-  let fit _s =
-    ()
-
   let clear =
     H.clear
 

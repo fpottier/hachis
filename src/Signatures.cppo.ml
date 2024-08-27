@@ -168,18 +168,12 @@ module type SET = sig
      The time complexity of this operation is constant. *)
   val reset : set -> unit
 
-  (**[cleanup s] cleans up the internal representation of the set [s] by
-     freeing the space occupied by any previously removed elements. If
-     many elements have been recently removed from the set, this can
-     free up some space and delay the need to grow the set's internal
-     data array. The time complexity of this operation is linear in the
+  (**[cleanup s] cleans up the internal representation of the set [s]
+     by freeing up the space occupied by previously removed elements
+     in the internal data array and by shrinking this data array, if
+     possible. The time complexity of this operation is linear in the
      size of the internal data array. *)
   val cleanup : set -> unit
-
-  (**[fit s] shrinks the internal data array of the set [s], if possible,
-     so as to save space. The time complexity of this operation is linear
-     in the size of the internal data array. *)
-  val fit : set -> unit
 
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
@@ -311,18 +305,12 @@ module type MAP = sig
      The time complexity of this operation is constant. *)
   val reset : map -> unit
 
-  (**[cleanup m] cleans up the internal representation of the map [m] by
-     freeing the space occupied by any previously removed keys. If many
-     keys have been recently removed, this can free up some space and
-     delay the need to grow the map's internal data arrays. The time
-     complexity of this operation is linear in the size of the internal
-     data arrays. *)
+  (**[cleanup m] cleans up the internal representation of the map [m]
+     by freeing up the space occupied by previously removed elements
+     in the internal data arrays and by shrinking these data arrays,
+     if possible. The time complexity of this operation is linear in
+     the size of the internal data arrays. *)
   val cleanup : map -> unit
-
-  (**[fit m] shrinks the internal data array of the map [m], if possible,
-     so as to save space. The time complexity of this operation is linear
-     in the size of the internal data array. *)
-  val fit : map -> unit
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)

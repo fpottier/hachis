@@ -856,8 +856,14 @@ let rec possibly_shrink (s : table) (new_capacity : capacity) =
     (* The capacity can be divided by two. *)
     possibly_shrink s (new_capacity / 2)
 
-let[@inline] fit (s : table) =
-  possibly_shrink s (capacity s)
+let[@inline] cleanup (s : table) =
+  (* First, shrink the table, if its occupation is sufficiently low. *)
+  possibly_shrink s (capacity s);
+  (* Then, if the table contains any tombstones (which can be the case
+     only if the table was not shrunk above), copy just the live keys
+     to a new key array. *)
+  if s.occupation > s.population then
+    resize s (capacity s)
 
 let add (s : table) (x : key) ov : bool =
   validate x;
@@ -904,12 +910,6 @@ let reset (s : table) =
   s.value <- V.empty;
   #endif
   ()
-
-let[@inline] cleanup (s : table) =
-  (* If there are any tombstones, *)
-  if s.occupation > s.population then
-    (* then copy just the live keys to a new key array. *)
-    resize s (capacity s)
 
 (* One might ask whether [copy] should return an identical copy or
    construct a fresh hash set that does not contain any tombstones. We

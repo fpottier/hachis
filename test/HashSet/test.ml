@@ -121,9 +121,6 @@ let () =
   declare "cleanup" spec R.cleanup C.cleanup;
 
   let spec = set ^> unit in
-  declare "fit" spec R.fit C.fit;
-
-  let spec = set ^> unit in
   declare "clear" spec R.clear C.clear;
 
   let spec = set ^> unit in
