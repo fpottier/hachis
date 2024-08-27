@@ -262,6 +262,9 @@ let[@inline] crowded occupation capacity =
 let[@inline] full occupation capacity =
   occupation = capacity
 
+let[@inline] crowded_or_full occupation capacity =
+  crowded occupation capacity || full occupation capacity
+
 (* -------------------------------------------------------------------------- *)
 
 (* The value array is lazily allocated. *)
@@ -723,6 +726,7 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
 
 let resize (s : table) (new_capacity : capacity) =
   assert (is_power_of_two new_capacity);
+  assert (not (crowded_or_full s.occupation new_capacity));
   let old_key = s.key in
   #ifdef ENABLE_MAP
   let old_value = s.value in
@@ -817,7 +821,7 @@ let[@inline] possibly_grow (s : table) =
      to remove this constraint, at the cost of performing two tests. *)
   let o = s.occupation
   and c = capacity s in
-  if crowded o c || full o c then
+  if crowded_or_full o c then
     (* Double the capacity of the [key] array. *)
     resize s (2 * c);
   (* There must always remain at least one empty slot. Otherwise, searches
