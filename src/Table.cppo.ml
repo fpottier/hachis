@@ -729,16 +729,17 @@ let rec add_absent_no_updates (s : table) (x : key) ov (j : int) =
 
 (* [resize s new_capacity] allocates a new key array whose capacity is
    [new_capacity]. Then, it copies the content of the old key array to
-   the new one. *)
+   the new one. All tombstones disappear in the process. *)
 
 (* [new_capacity] must be a power of two, and must be large enough to
-   ensure that the table is not crowded. *)
+   ensure that (once all tombstones have disappeared) the table is not
+   crowded. *)
 
 (* The [value] array is resized in a similar way. *)
 
 let resize (s : table) (new_capacity : capacity) =
   assert (is_power_of_two new_capacity);
-  assert (not (crowded_or_full s.occupation new_capacity));
+  assert (not (crowded_or_full s.population new_capacity));
   let old_key = s.key in
   #ifdef ENABLE_MAP
   let old_value = s.value in
@@ -840,12 +841,25 @@ let[@inline] possibly_grow (s : table) =
      would diverge. *)
   assert (s.occupation < capacity s)
 
+(* [possibly_shrink s new_capacity] shrinks the capacity of the table
+   to [new_capacity] or to a lower capacity. *)
+
+(* We never shrink a table below [initial_capacity], as that would be
+   counter-productive. *)
+
+(* To determine whether the capacity [new_capacity] can be safely divided
+   by two, we use [crowded_or_full]. We apply this test to [s.population],
+   as opposed to [s.occupation], because if the table is shrunk, then all
+   tombstones will disappear. Hence, the current tombstones should not be
+   taken into account when determining whether the shrunk table would be
+   crowded. *)
+
 let rec possibly_shrink (s : table) (new_capacity : capacity) =
   assert (is_power_of_two new_capacity);
   assert (initial_capacity <= new_capacity);
   assert (new_capacity <= capacity s);
   if new_capacity = initial_capacity
-  || crowded_or_full s.occupation (new_capacity / 2) then begin
+  || crowded_or_full s.population (new_capacity / 2) then begin
     (* The capacity cannot be divided by two. If it is less than the
        current capacity, then the table must be resized. Otherwise,
        there is nothing to do. *)
