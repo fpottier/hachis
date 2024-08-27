@@ -804,7 +804,7 @@ let[@inline] length (s : table) (x : key) : int =
   (* No need to validate [x]; this function is private. *)
   length s x (start s x) 0
 
-let[@inline] possibly_resize (s : table) =
+let[@inline] possibly_grow (s : table) =
   (* If the maximum occupancy is now exceeded, then the capacity of the [key]
      array must be increased. This is heuristic: keeping occupancy low allows
      us to keep the expected length of a linear search low. *)
@@ -827,20 +827,20 @@ let[@inline] possibly_resize (s : table) =
 let add (s : table) (x : key) ov : bool =
   validate x;
   let was_added = add s x ov (start s x) in
-  if was_added then possibly_resize s;
+  if was_added then possibly_grow s;
   was_added
 
 let add_absent (s : table) (x : key) ov =
   validate x;
   add_absent s x ov (start s x);
-  possibly_resize s
+  possibly_grow s
 
 let find_key_else_add (s : table) (x : key) ov =
   validate x;
   try
     find_key_else_add s x ov (start s x)
   with Not_found as e ->
-    possibly_resize s;
+    possibly_grow s;
     raise e
 
 let[@inline] remove (s : table) (x : key) : key =
