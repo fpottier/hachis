@@ -221,6 +221,9 @@ module type SET = sig
      set [s]. *)
   val histogram : set -> histogram
 
+  (**[average h] returns the average search length in the histogram [h]. *)
+  val average : histogram -> float
+
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
   val statistics : set -> string
@@ -389,6 +392,9 @@ module type MAP = sig
   (**[histogram m] returns a histogram of the search lengths for the
      map [m]. *)
   val histogram : map -> histogram
+
+  (**[average h] returns the average search length in the histogram [h]. *)
+  val average : histogram -> float
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)
