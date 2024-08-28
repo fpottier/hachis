@@ -1151,21 +1151,23 @@ let average (h : histogram) : float =
   ) h;
   float !num /. float !denum
 
-let show_histogram (h : histogram) : string =
-  let b = Buffer.create 128 in
-  Printf.bprintf b "Average search length: %.3f\n" (average h);
-  Printf.bprintf b "Histogram:\n";
-  IntMap.iter (fun l m ->
-    Printf.bprintf b
-      "  %9d keys have search length %3d.\n"
-      m l
-  ) h;
-  Buffer.contents b
+open Printf
 
 let statistics (s : table) : string =
-  Printf.sprintf "Population: %9d\nTombstones: %9d\nCapacity  : %9d\nOccupancy : %.3f\n"
-    (population s) (occupation s - population s) (capacity s) (occupancy s)
-  ^ show_histogram (histogram s)
+  let b = Buffer.create 128 in
+  bprintf b "Population: %9d\n" (population s);
+  bprintf b "Tombstones: %9d\n" (occupation s - population s);
+  bprintf b "Capacity  : %9d\n" (capacity s);
+  bprintf b "Occupancy : %.3f\n" (occupancy s);
+  let h = histogram s in
+  bprintf b "Average search length: %.3f\n" (average h);
+  bprintf b "Histogram:\n";
+  IntMap.iter (fun l m ->
+    bprintf b
+      "  %9d keys have search length %3d.\n"
+      m l
+  ) h
+  Buffer.contents b
 
 (* -------------------------------------------------------------------------- *)
 
