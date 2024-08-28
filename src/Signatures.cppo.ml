@@ -74,6 +74,10 @@ module type ARRAY = sig
      [a]. {b The index [i] must be valid}. *)
   val unsafe_set : t -> int -> element -> unit
 
+  (**[fill a o k x] fills the array segment identified by array [a],
+     offset [o], and length [k] with the value [x]. *)
+  val fill : t -> int -> int -> element -> unit
+
 end
 
 module type SET = sig

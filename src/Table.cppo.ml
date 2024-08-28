@@ -1023,9 +1023,7 @@ let[@inline] remove (s : table) (x : key) : key =
 let clear (s : table) =
   s.population <- 0;
   s.occupation <- 0;
-  for k = 0 to capacity s - 1 do
-    K.unsafe_set s.key k void
-  done
+  K.fill s.key 0 (capacity s) void
   (* The [value] array is unaffected. We tolerate garbage in it. *)
 
 let reset (s : table) =
@@ -1224,6 +1222,7 @@ end
   let length = Array.length
   let[@inline] unsafe_get (a : t) i = Array.unsafe_get a i
   let[@inline] unsafe_set (a : t) i x = Array.unsafe_set a i x
+  let fill = Array.fill
 end
 
 (* -------------------------------------------------------------------------- *)
