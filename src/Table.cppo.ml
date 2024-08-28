@@ -1153,11 +1153,11 @@ let average (h : histogram) : float =
 
 let show_histogram (h : histogram) : string =
   let b = Buffer.create 128 in
-  Printf.bprintf b "Average scan length: %.3f\n" (average h);
+  Printf.bprintf b "Average search length: %.3f\n" (average h);
   Printf.bprintf b "Histogram:\n";
   IntMap.iter (fun l m ->
     Printf.bprintf b
-      "  %9d keys require a linear scan of length %3d.\n"
+      "  %9d keys have search length %3d.\n"
       m l
   ) h;
   Buffer.contents b
