@@ -1166,6 +1166,7 @@ let statistics (s : table) : string =
 
 (* Final packaging. *)
 
+type t = table
 #ifdef ENABLE_MAP
 type map = table
 let iter = foreach_key_value

@@ -86,6 +86,9 @@ module type SET = sig
      imply [x = y]. *)
   type set
 
+  (**[t] is a synonym for [set]. *)
+  type t = set
+
   (** {2 Creation} *)
 
   (**[create()] creates a fresh empty set. *)
@@ -209,6 +212,9 @@ module type MAP = sig
      At all times, a map [m] contains at most one key of each equivalence
      class: that is, [mem m x] and [mem m y] and [equiv x y] imply [x = y]. *)
   type map
+
+  (**[t] is a synonym for [map]. *)
+  type t = map
 
   (** {2 Creation} *)
 
