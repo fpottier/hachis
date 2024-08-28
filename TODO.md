@@ -9,8 +9,6 @@
   In maps, we may also wish to have `find_value_and_remove`.
   Adapt the benchmark accordingly.
 
-* Publish `t` as a synonym for `set` or `map`.
-
 * Implement `find_value_else_add`?
 
 * Add a type `statistics` and a printer for it.
@@ -20,13 +18,16 @@
   this degrades performance (with and without flambda).
 
 * Add missing operations:
-  `find` (synonym for `find_value` in hash maps),
   `find_opt`,
   `replace`,
   `filter_map_inplace`,
   `fold`,
   `length` (a synonym for `population`),
   `to_seq`, `add_seq`, `replace_seq`, `of_seq`.
+
+* Check (improve) compatibility with `Stdlib.Hashtbl`,
+  either by ensuring that our API matches the `Stdlib` API,
+  or by providing a submodule that emulates the `Stdlib` API.
 
 * Develop a `Sentinel` module.
   `Make` extends an existing type with one fresh sentinel.
