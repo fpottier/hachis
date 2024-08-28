@@ -34,8 +34,14 @@
   `MakeMany` extends a type with `n` fresh sentinels.
 
 * Think about a concurrent variant of this data structure.
-  Shrinking or growing the table would require blocking
+  Shrinking or growing the table requires blocking
   insertions and deletions (but not lookups).
+  An insertion or deletion operation can be committed by
+  a CAS on the `key` array. The table's `population` and
+  `occupation` fields can be updated (via fetch-and-add)
+  after the commit point, but this seems to imply that
+  the current value of these fields can never be trusted
+  unless the lock has been taken.
 
 ## Test
 
