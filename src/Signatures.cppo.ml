@@ -55,6 +55,9 @@ module type ARRAY = sig
   (**The type of arrays. *)
   type t
 
+  (**[empty] is the empty array. *)
+  val empty : t
+
   (**[make n x] returns a new array of length [n], where every slot contains
      the value [x]. *)
   val make : int -> element -> t

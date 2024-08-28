@@ -47,7 +47,7 @@ module Make_
 (H : HashedType)
 (_ : SENTINELS with type t = H.t)
 (_ : ARRAY with type element = H.t)
-(V : sig include ARRAY val empty : t end)
+(V : ARRAY)
 : MAP with type key = H.t and type value = V.element
 
 (**The functor [Make] takes three parameters: [H], [S], and [V].

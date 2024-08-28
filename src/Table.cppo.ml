@@ -1200,7 +1200,7 @@ end
 
 (* -------------------------------------------------------------------------- *)
 
-(* [MakeArray(X)] creates a copy of [Stdlib.Array] that is specialized for
+(* [MonoArray(X)] creates a copy of [Stdlib.Array] that is specialized for
    array elements of type [X.t]. *)
 
 module[@inline] MonoArray
@@ -1214,9 +1214,7 @@ end
 = struct
   type element = X.t
   type t = element array
-#ifdef ENABLE_MAP
   let empty = [||]
-#endif
   let make = Array.make
   let copy = Array.copy
   let length = Array.length
