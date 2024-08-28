@@ -167,7 +167,7 @@ module type SET = sig
      that is, the number of inhabitants of this set. *)
   val cardinal : set -> int
 
-  (** {2 Management} *)
+  (** {2 Cleanup} *)
 
   (**[clear s] empties the set [s]. The internal data array is retained,
      and is erased. The time complexity of this operation is linear in
@@ -310,7 +310,7 @@ module type MAP = sig
      that is, the number of inhabitants of this map. *)
   val cardinal : map -> int
 
-  (** {2 Management} *)
+  (** {2 Cleanup} *)
 
   (**[clear m] empties the map [m]. The internal data arrays are retained,
      and are erased. The time complexity of this operation is linear in
