@@ -258,6 +258,9 @@ module type MAP = sig
      returned. Otherwise, [Not_found] is raised. *)
   val find_value : map -> key -> value
 
+  (**[find] is a synonym for [find_value]. *)
+  val find : map -> key -> value
+
   (** {2 Insertion and lookup} *)
 
   (**[find_key_else_add m x] determines whether some key [y] that is

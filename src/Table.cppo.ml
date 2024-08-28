@@ -1167,15 +1167,27 @@ let statistics (s : table) : string =
 (* Final packaging. *)
 
 type t = table
+
 #ifdef ENABLE_MAP
+
+(* [map]-specific names: *)
+
 type map = table
+
+let find = find_value
 let iter = foreach_key_value
+
 #else
+
+(* [set]-specific names: *)
+
 type element = key
 type set = table
+
 let find = find_key
 let find_else_add = find_key_else_add
 let iter = foreach_key
+
 #endif
 
 end
