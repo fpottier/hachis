@@ -185,10 +185,6 @@ module type SET = sig
      size of the internal data array. *)
   val cleanup : set -> unit
 
-  (**[statistics s] returns a string of information about the population,
-     capacity and occupancy of the set [s]. *)
-  val statistics : set -> string
-
   (** {2 Display} *)
 
   (**[show show_key s] returns a textual representation of the set [s].
@@ -197,6 +193,12 @@ module type SET = sig
      function [show_key] is used to obtain a textual representation of
      each element. *)
   val show : (element -> string) -> set -> string
+
+  (** {2 Statistics} *)
+
+  (**[statistics s] returns a string of information about the population,
+     capacity and occupancy of the set [s]. *)
+  val statistics : set -> string
 
   (**/**)
   (* In debug builds, [check s] checks that the set's internal invariant
@@ -328,10 +330,6 @@ module type MAP = sig
      the size of the internal data arrays. *)
   val cleanup : map -> unit
 
-  (**[statistics m] returns a string of information about the population,
-     capacity and occupancy of the map [m]. *)
-  val statistics : map -> string
-
   (** {2 Display} *)
 
   (**[show show_key show_value m] returns a textual representation of
@@ -339,6 +337,12 @@ module type MAP = sig
      [show_value] are used to obtain textual representations of keys
      and values. *)
   val show : (key -> string) -> (value -> string) -> map -> string
+
+  (** {2 Statistics} *)
+
+  (**[statistics m] returns a string of information about the population,
+     capacity and occupancy of the map [m]. *)
+  val statistics : map -> string
 
   (**/**)
   (* In debug builds, [check m] checks that the map's internal invariant
