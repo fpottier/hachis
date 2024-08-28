@@ -196,6 +196,10 @@ module type SET = sig
 
   (** {2 Statistics} *)
 
+  (**[capacity s] returns the current capacity of the set [s], that is,
+     the current size of its internal array. *)
+  val capacity : set -> int
+
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
   val statistics : set -> string
@@ -339,6 +343,10 @@ module type MAP = sig
   val show : (key -> string) -> (value -> string) -> map -> string
 
   (** {2 Statistics} *)
+
+  (**[capacity m] returns the current capacity of the map [m], that is,
+     the current size of its internal key and value arrays. *)
+  val capacity : map -> int
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)
