@@ -33,6 +33,10 @@
   `Make` extends an existing type with one fresh sentinel.
   `MakeMany` extends a type with `n` fresh sentinels.
 
+* Think about a concurrent variant of this data structure.
+  Shrinking or growing the table would require blocking
+  insertions and deletions (but not lookups).
+
 ## Test
 
 * Add tests of `show`, with an expected output.
