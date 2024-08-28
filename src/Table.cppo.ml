@@ -895,45 +895,7 @@ let[@inline] elim (s : table) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* Public functions. *)
-
-let create () =
-  let capacity = initial_capacity in
-  let population = 0
-  and occupation = 0
-  and mask = capacity - 1
-  and key = K.make capacity void
-  #ifdef ENABLE_MAP
-  and value = V.empty
-  #endif
-  in
-  { population; occupation; mask; key; ovalue }
-
-let[@inline] validate (x : key) =
-  assert (is_not_sentinel x)
-    (* We use an assertion that is erased in release mode.
-       If we wanted this module to be more defensive, we
-       could keep a defensive test in release mode. *)
-
-let[@inline] mem (s : table) (x : key) : bool =
-  validate x;
-  mem s x (start s x)
-
-let[@inline] find_key (s : table) (x : key) : key =
-  validate x;
-  find_key s x (start s x)
-
-#ifdef ENABLE_MAP
-
-let[@inline] find_value (s : table) (x : key) : value =
-  validate x;
-  find_value s x (start s x)
-
-#endif
-
-let[@inline] length (s : table) (x : key) : int =
-  (* No need to validate [x]; this function is private. *)
-  length s x (start s x) 0
+(* Growing and shrinking a table. *)
 
 let[@inline] possibly_grow (s : table) =
   (* If the maximum occupancy is now exceeded, then the capacity of the [key]
@@ -983,6 +945,48 @@ let rec possibly_shrink (s : table) (new_capacity : capacity) =
   else
     (* The capacity can be divided by two. *)
     possibly_shrink s (new_capacity / 2)
+
+(* -------------------------------------------------------------------------- *)
+
+(* Public functions. *)
+
+let create () =
+  let capacity = initial_capacity in
+  let population = 0
+  and occupation = 0
+  and mask = capacity - 1
+  and key = K.make capacity void
+  #ifdef ENABLE_MAP
+  and value = V.empty
+  #endif
+  in
+  { population; occupation; mask; key; ovalue }
+
+let[@inline] validate (x : key) =
+  assert (is_not_sentinel x)
+    (* We use an assertion that is erased in release mode.
+       If we wanted this module to be more defensive, we
+       could keep a defensive test in release mode. *)
+
+let[@inline] mem (s : table) (x : key) : bool =
+  validate x;
+  mem s x (start s x)
+
+let[@inline] find_key (s : table) (x : key) : key =
+  validate x;
+  find_key s x (start s x)
+
+#ifdef ENABLE_MAP
+
+let[@inline] find_value (s : table) (x : key) : value =
+  validate x;
+  find_value s x (start s x)
+
+#endif
+
+let[@inline] length (s : table) (x : key) : int =
+  (* No need to validate [x]; this function is private. *)
+  length s x (start s x) 0
 
 let[@inline] cleanup (s : table) =
   (* First, shrink the table, if its occupation is sufficiently low. *)
