@@ -102,7 +102,7 @@ module type SET = sig
   val create : unit -> set
 
   (**[copy s] returns a new set whose elements are the elements of [s].
-     Its time complexity is linear in the size of the internal data array. *)
+     Its time complexity is linear in the capacity of the set [s]. *)
   val copy : set -> set
 
   (** {2 Insertion} *)
@@ -170,20 +170,19 @@ module type SET = sig
   (** {2 Cleanup} *)
 
   (**[clear s] empties the set [s]. The internal data array is retained,
-     and is erased. The time complexity of this operation is linear in
-     the size of the internal data array. *)
+     and is erased. The time complexity of this operation is linear in the
+     capacity of the set [s]. *)
   val clear : set -> unit
 
   (**[reset s] empties the set [s]. The internal data array is abandoned.
      The time complexity of this operation is constant. *)
   val reset : set -> unit
 
-  (**[cleanup s] cleans up the internal representation of the set [s]
-     by freeing up the space occupied by tombstones in the internal
-     data array and by shrinking this data array, if possible.
-     (Deleting an element can leave a tombstone in the data array.)
-     The time complexity of this operation is linear in the size of
-     the internal data array. *)
+  (**[cleanup s] cleans up the internal representation of the set [s] by
+     freeing up the space occupied by tombstones in the internal data
+     array and by shrinking this data array, if possible. (Deleting an
+     element can leave a tombstone in the data array.) The time complexity
+     of this operation is linear in the capacity of the set [s]. *)
   val cleanup : set -> unit
 
   (** {2 Display} *)
@@ -259,7 +258,7 @@ module type MAP = sig
   val create : unit -> map
 
   (**[copy m] returns a new map whose key-value bindings are those of [m].
-     Its time complexity is linear in the size of the internal data arrays. *)
+     Its time complexity is linear in the capacity of the map [m]. *)
   val copy : map -> map
 
   (** {2 Insertion} *)
@@ -344,19 +343,18 @@ module type MAP = sig
 
   (**[clear m] empties the map [m]. The internal data arrays are retained,
      and are erased. The time complexity of this operation is linear in
-     the size of the internal data arrays. *)
+     the capacity of the map [m]. *)
   val clear : map -> unit
 
   (**[reset m] empties the map [m]. The internal data arrays are abandoned.
      The time complexity of this operation is constant. *)
   val reset : map -> unit
 
-  (**[cleanup m] cleans up the internal representation of the map [m]
-     by freeing up the space occupied by tombstones in the internal
-     data arrays and by shrinking these data arrays, if possible.
-     (Deleting an element can leave a tombstone in a data array.) The
-     time complexity of this operation is linear in the size of the
-     internal data arrays. *)
+  (**[cleanup m] cleans up the internal representation of the map [m] by
+     freeing up the space occupied by tombstones in the internal data
+     arrays and by shrinking these data arrays, if possible. (Deleting an
+     element can leave a tombstone in a data array.) The time complexity
+     of this operation is linear in the capacity of the map [m]. *)
   val cleanup : map -> unit
 
   (** {2 Display} *)
