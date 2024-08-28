@@ -157,11 +157,14 @@ type capacity =
 let[@inline] population (s : table) =
   s.population
 
+let[@inline] occupation (s : table) =
+  s.occupation
+
 let[@inline] capacity (s : table) : capacity =
   K.length s.key
 
 let[@inline] occupancy (s : table) : float =
-  float (s.occupation) /. float (capacity s)
+  float (occupation s) /. float (capacity s)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -908,7 +911,7 @@ let[@inline] possibly_grow (s : table) =
      [max_occupancy + 1/capacity <= 1]. Then, the maximum occupancy check,
      alone, would ensure the existence of at least one [void] slot. We prefer
      to remove this constraint, at the cost of performing two tests. *)
-  let o = s.occupation
+  let o = occupation s
   and c = capacity s in
   if crowded_or_full o c then
     (* Double the capacity of the [key] array. *)
@@ -1161,7 +1164,7 @@ let show_histogram (h : histogram) : string =
 
 let statistics (s : table) : string =
   Printf.sprintf "Population: %9d\nTombstones: %9d\nCapacity  : %9d\nOccupancy : %.3f\n"
-    (population s) (s.occupation - population s) (capacity s) (occupancy s)
+    (population s) (occupation s - population s) (capacity s) (occupancy s)
   ^ show_histogram (histogram s)
 
 (* -------------------------------------------------------------------------- *)

@@ -201,6 +201,11 @@ module type SET = sig
      the current size of its internal array. *)
   val capacity : set -> int
 
+  (**[occupation s] returns the current occupation of the set [s],
+     that is, the number of occupied entries in its internal data
+     array. This number may be greater than [cardinal s]. *)
+  val occupation : set -> int
+
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
   val statistics : set -> string
@@ -347,8 +352,13 @@ module type MAP = sig
   (** {2 Statistics} *)
 
   (**[capacity m] returns the current capacity of the map [m], that is,
-     the current size of its internal key and value arrays. *)
+     the current size of its internal data arrays. *)
   val capacity : map -> int
+
+  (**[occupation m] returns the current occupation of the map [m],
+     that is, the number of occupied entries in its internal data
+     arrays. This number may be greater than [cardinal m]. *)
+  val occupation : map -> int
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)
