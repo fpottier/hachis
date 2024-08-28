@@ -206,6 +206,21 @@ module type SET = sig
      array. This number may be greater than [cardinal s]. *)
   val occupation : set -> int
 
+  (**We say that a key [x] requires a search of length [k] in the set [s]
+     if the function call [mem s x] requires reading [k+1] successive
+     slots in the internal data array of the set [s]. In the best case, an
+     element requires a search of length 0. If there are collisions, then
+     some elements will require a search of length more than 0.
+
+     A histogram for the set [s] is a finite association map that maps a
+     natural integer [k] to the number of elements that require a search
+     of length [k] in the set [s]. *)
+  type histogram = int Map.Make(Int).t
+
+  (**[histogram s] returns a histogram of the search lengths for the
+     set [s]. *)
+  val histogram : set -> histogram
+
   (**[statistics s] returns a string of information about the population,
      capacity and occupancy of the set [s]. *)
   val statistics : set -> string
@@ -359,6 +374,21 @@ module type MAP = sig
      that is, the number of occupied entries in its internal data
      arrays. This number may be greater than [cardinal m]. *)
   val occupation : map -> int
+
+  (**We say that a key [x] requires a search of length [k] in the map [m]
+     if the function call [mem m x] requires reading [k+1] successive
+     slots in the internal data array of the map [m]. In the best case,
+     a key requires a search of length 0. If there are collisions, then
+     some keys will require a search of length more than 0.
+
+     A histogram for the map [m] is a finite association map that maps
+     a natural integer [k] to the number of keys that require a search
+     of length [k] in the map [m]. *)
+  type histogram = int Map.Make(Int).t
+
+  (**[histogram m] returns a histogram of the search lengths for the
+     map [m]. *)
+  val histogram : map -> histogram
 
   (**[statistics m] returns a string of information about the population,
      capacity and occupancy of the map [m]. *)
