@@ -179,10 +179,11 @@ module type SET = sig
   val reset : set -> unit
 
   (**[cleanup s] cleans up the internal representation of the set [s]
-     by freeing up the space occupied by previously removed elements
-     in the internal data array and by shrinking this data array, if
-     possible. The time complexity of this operation is linear in the
-     size of the internal data array. *)
+     by freeing up the space occupied by tombstones in the internal
+     data array and by shrinking this data array, if possible.
+     (Deleting an element can leave a tombstone in the data array.)
+     The time complexity of this operation is linear in the size of
+     the internal data array. *)
   val cleanup : set -> unit
 
   (** {2 Display} *)
@@ -328,10 +329,11 @@ module type MAP = sig
   val reset : map -> unit
 
   (**[cleanup m] cleans up the internal representation of the map [m]
-     by freeing up the space occupied by previously removed elements
-     in the internal data arrays and by shrinking these data arrays,
-     if possible. The time complexity of this operation is linear in
-     the size of the internal data arrays. *)
+     by freeing up the space occupied by tombstones in the internal
+     data arrays and by shrinking these data arrays, if possible.
+     (Deleting an element can leave a tombstone in a data array.) The
+     time complexity of this operation is linear in the size of the
+     internal data arrays. *)
   val cleanup : map -> unit
 
   (** {2 Display} *)
