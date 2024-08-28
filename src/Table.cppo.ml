@@ -1166,7 +1166,11 @@ let statistics (s : table) : string =
 
 (* Final packaging. *)
 
+(* Common names: *)
+
 type t = table
+
+let cardinal = population
 
 #ifdef ENABLE_MAP
 

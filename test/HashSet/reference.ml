@@ -60,7 +60,7 @@ end) = struct
     H.remove s x;
     y
 
-  let population s =
+  let cardinal s =
     H.length s
 
   let cleanup _s =

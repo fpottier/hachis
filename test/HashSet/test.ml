@@ -115,7 +115,7 @@ let () =
   declare "remove" spec R.remove C.remove;
 
   let spec = set ^> int in
-  declare "population" spec R.population C.population;
+  declare "cardinal" spec R.cardinal C.cardinal;
 
   let spec = set ^> unit in
   declare "cleanup" spec R.cleanup C.cleanup;

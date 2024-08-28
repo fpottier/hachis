@@ -74,7 +74,7 @@ end)
     H.remove m x;
     y
 
-  let population m =
+  let cardinal m =
     H.length m
 
   let cleanup _m =
