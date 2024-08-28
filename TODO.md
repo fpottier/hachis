@@ -11,8 +11,6 @@
 
 * Implement `find_value_else_add`?
 
-* Add a type `statistics` and a printer for it.
-
 * Add a way of choosing the table's capacity and max occupancy rate
   at creation time. (Give `Make_` an extra parameter.) Check whether
   this degrades performance (with and without flambda).
