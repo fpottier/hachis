@@ -1166,7 +1166,7 @@ let statistics (s : table) : string =
     bprintf b
       "  %9d keys have search length %3d.\n"
       m l
-  ) h
+  ) h;
   Buffer.contents b
 
 (* -------------------------------------------------------------------------- *)
