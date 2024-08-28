@@ -39,8 +39,6 @@
 
 ## Cleanup
 
-* `clear` should use array `fill` instead of a loop.
-
 * Finish cleaning up the code.
 
 * Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
