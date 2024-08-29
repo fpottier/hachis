@@ -17,5 +17,6 @@
     (ocaml (>= 4.14))
     (monolith :with-test)
     (ocamlfind :with-test)
+    (hector :with-test)
   )
 )
