@@ -34,19 +34,13 @@ module C = Hachis.HashSet.Make(V)(S)
 (* Print the above prologue when showing a failing test scenario. *)
 
 let () = dprintf "          \
-          #require \"hector\"
-          module A = struct
-            include Array
-            type element = int
-            type t = element array
-          end
-          module S = struct type t = int let void = (-1) let tomb = (-2) end
           module V = struct
             type t = int
             let normalize x = x lor 1
             let equal x y = Int.equal (normalize x) (normalize y)
             let hash x = Hashtbl.hash (normalize x)
           end
+          module S = struct type t = int let void = (-1) let tomb = (-2) end
           open Hachis.HashSet.Make(V)(S)
 "
 
