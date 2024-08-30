@@ -1,0 +1,15 @@
+(executable
+  (name statistics)
+  (libraries hachis)
+)
+
+(rule
+  (targets statistics.out)
+  (action (with-stdout-to %{targets} (run ./statistics.exe)))
+)
+
+(rule
+  (alias runtest)
+  (package hachis)
+  (action (diff statistics.ref statistics.out))
+)

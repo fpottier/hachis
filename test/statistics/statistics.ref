@@ -1,0 +1,42 @@
+Population:   2000000
+Tombstones:         0
+Capacity  :   4194304
+Occupancy : 0.477
+Average search length: 0.456
+Histogram:
+    1524354 keys have search length   0.
+     281072 keys have search length   1.
+      97574 keys have search length   2.
+      43276 keys have search length   3.
+      21928 keys have search length   4.
+      12279 keys have search length   5.
+       6981 keys have search length   6.
+       4388 keys have search length   7.
+       2678 keys have search length   8.
+       1763 keys have search length   9.
+       1128 keys have search length  10.
+        790 keys have search length  11.
+        555 keys have search length  12.
+        360 keys have search length  13.
+        247 keys have search length  14.
+        158 keys have search length  15.
+        110 keys have search length  16.
+        111 keys have search length  17.
+         68 keys have search length  18.
+         44 keys have search length  19.
+         34 keys have search length  20.
+         32 keys have search length  21.
+         17 keys have search length  22.
+         15 keys have search length  23.
+          4 keys have search length  24.
+         11 keys have search length  25.
+          2 keys have search length  26.
+          6 keys have search length  27.
+          2 keys have search length  28.
+          2 keys have search length  29.
+          5 keys have search length  30.
+          2 keys have search length  31.
+          1 keys have search length  32.
+          1 keys have search length  33.
+          1 keys have search length  35.
+          1 keys have search length  51.
