@@ -41,10 +41,6 @@
   the current value of these fields can never be trusted
   unless the lock has been taken.
 
-## Test
-
-* Add tests of `show`, with an expected output.
-
 ## Cleanup
 
 * Finish cleaning up the code.
