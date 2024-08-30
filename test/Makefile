@@ -2,7 +2,7 @@
 # These tests do not terminate; they run forever.
 
 # [make test] also executes [dune runtest],
-# which runs the test in the subdirectory statistics/.
+# which runs the tests in the subdirectories show/ and statistics/.
 
 .PHONY: test
 test:

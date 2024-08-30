@@ -1,0 +1,15 @@
+(executable
+  (name show)
+  (libraries hachis)
+)
+
+(rule
+  (targets show.out)
+  (action (with-stdout-to %{targets} (run ./show.exe)))
+)
+
+(rule
+  (alias runtest)
+  (package hachis)
+  (action (diff show.ref show.out))
+)
