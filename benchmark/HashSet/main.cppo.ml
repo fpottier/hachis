@@ -26,17 +26,14 @@ let () =
 
 (* This benchmark compares several implementations of a minimal HashSet API.  *)
 
-(* In [Stdlib.Hashtbl], [add] returns a result of type [unit],
+(* In [Stdlib.Hashtbl], [replace] returns a result of type [unit],
    so we have to adopt the same API. *)
-
-(* In this API, the semantics of [add] is to replace an existing entry if
-   there is one. *)
 
 module type API = sig
   type element = int
   type set
   val create : unit -> set
-  val add : set -> element -> unit
+  val replace : set -> element -> unit
   val add_absent : set -> element -> unit
   val remove : set -> element -> unit
   val mem : set -> element -> bool
@@ -66,14 +63,14 @@ module S = struct type t = int let void = (-1) let tomb = (-2) end
 
 module HashSet : API = struct
   include Hachis.HashSet.Make(V)(S)
-  let[@inline] add s x = ignore (add s x)
+  let[@inline] replace s x = ignore (replace s x)
 end
 
 (* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
 
 module HectorHashSet : API = struct
   include Hachis.HashSet.Make_(V)(S)(Hector.IntArray)
-  let[@inline] add s x = ignore (add s x)
+  let[@inline] replace s x = ignore (replace s x)
 end
 
 (* Instantiate [Hachis.HashMap] so as to respect [API]. *)
@@ -82,7 +79,7 @@ module HashMap : API = struct
   include Hachis.HashMap.Make(V)(S)(V)
   type element = key
   type set = map
-  let[@inline] add s x = ignore (add s x x)
+  let[@inline] replace s x = ignore (replace s x x)
   let[@inline] add_absent s x = add_absent s x x
 end
 
@@ -97,7 +94,7 @@ module Hashtbl : API = struct
   type element = int
   type set = unit t
   let[@inline] create () = create 128
-  let[@inline] add s x = replace s x ()
+  let[@inline] replace s x = replace s x ()
   and[@inline] add_absent s x = add s x ()
 end
 
@@ -108,8 +105,8 @@ module Set : API = struct
   type element = int
   type set = t ref
   let[@inline] create () = ref empty
-  let[@inline] add s x = (s := add x !s)
-  let add_absent = add
+  let[@inline] replace s x = (s := add x !s)
+  let add_absent = replace
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
 end
@@ -121,8 +118,8 @@ module BabyWSet : API = struct
   type element = int
   type set = t ref
   let[@inline] create () = ref empty
-  let[@inline] add s x = (s := add x !s)
-  let add_absent = add
+  let[@inline] replace s x = (s := add x !s)
+  let add_absent = replace
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
 end
@@ -140,7 +137,7 @@ module R = struct
   open Baby.W.Set.Make(V)
   type t = { mutable max_pop: int; mutable now: set }
   let create () = { max_pop = 0; now = empty }
-  let add s x =
+  let replace s x =
     s.now <- add x s.now;
     let n = cardinal s.now in
     if s.max_pop < n then s.max_pop <- n
@@ -169,7 +166,7 @@ end
 type key =
   V.t
 
-(* An instruction type is one of the following. *)
+(* An instruction type. *)
 
 type argument =
   | Key of key (* a specific key *)
@@ -178,15 +175,15 @@ type argument =
   | Present    (* any currently present key *)
 
 type itype =
-  | ITAdd of argument
-  | ITAddAbsent
+  | ITReplace of argument
+  | ITAddAbsent of argument
   | ITRemove of argument
   | ITMem of argument
 
-(* A concrete instruction is [add x] or [remove x]. *)
+(* A concrete instruction. *)
 
 type instruction =
-  | IAdd of key
+  | IReplace of key
   | IAddAbsent of key
   | IRemove of key
   | IMem of key
@@ -245,14 +242,16 @@ let rec choose_key (a : argument) s u : key =
 
 let choose_instruction s u (it : itype) : instruction =
   match it with
-  | ITAdd a ->
+  | ITReplace a ->
       let x = choose_key a s u in
-      R.add s x;
-      IAdd x
-  | ITAddAbsent ->
-      let a = Absent in
+      R.replace s x;
+      IReplace x
+  | ITAddAbsent a ->
+      assert (a <> Random);
+      assert (a <> Present);
       let x = choose_key a s u in
-      R.add s x;
+      assert (not (R.mem s x));
+      R.replace s x;
       IAddAbsent x
   | ITRemove a ->
       let x = choose_key a s u in
@@ -273,16 +272,16 @@ let choose_sequence s u (r : recipe) : sequence =
 (* [print_statistics] prints statistics about a sequence of instructions. *)
 
 let print_statistics (seq : sequence) =
-  let add, remove, mem = ref 0, ref 0, ref 0 in
+  let replace, add, remove, mem = ref 0, ref 0, ref 0, ref 0 in
   Array.iter (fun instruction ->
     match instruction with
-    | IAdd       _ -> incr add
+    | IReplace   _ -> incr replace
     | IAddAbsent _ -> incr add
     | IRemove    _ -> incr remove
     | IMem       _ -> incr mem
   ) seq;
-  printf "This scenario involves %d insertions, %d deletions, and %d lookups.\n"
-    !add !remove !mem
+  printf "This scenario has %d replacements, %d insertions, %d deletions, and %d lookups.\n"
+    !replace !add !remove !mem
 
 (* [choose_scenario u (r1, r2)] randomly chooses a scenario that begins with
    an empty set as the initial state and obeys the pair of recipes [(r1, r2)].
@@ -313,8 +312,8 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
 #define EXECUTE(seq, M) \
   for i = 0 to Array.length seq - 1 do \
     match Array.unsafe_get seq i with \
-    | IAdd x -> \
-        M.add s x \
+    | IReplace x -> \
+        M.replace s x \
     | IAddAbsent x -> \
         M.add_absent s x \
     | IRemove x -> \
@@ -387,7 +386,7 @@ let either x y =
 
 let consecutive_insertions n : recipes =
   let recipe1 = empty
-  and recipe2 = n, (fun i -> ITAdd (Key (2 * i))) in
+  and recipe2 = n, (fun i -> ITAddAbsent (Key (2 * i))) in
   recipe1, recipe2
 
 PROMOTE("consecutive insertions", consecutive_insertions)
@@ -397,7 +396,7 @@ PROMOTE("consecutive insertions", consecutive_insertions)
 
 let random_insertions n : recipes =
   let recipe1 = empty
-  and recipe2 = n, (fun _ -> ITAdd Random) in
+  and recipe2 = n, (fun _ -> ITReplace Random) in
   recipe1, recipe2
 
 PROMOTE("random insertions", random_insertions)
@@ -408,7 +407,7 @@ PROMOTE("random insertions", random_insertions)
 
 let random_absent_insertions n : recipes =
   let recipe1 = empty
-  and recipe2 = n, (fun _ -> ITAddAbsent) in
+  and recipe2 = n, (fun _ -> ITAddAbsent Absent) in
   recipe1, recipe2
 
 PROMOTE("random absent insertions", random_absent_insertions)
@@ -417,7 +416,7 @@ PROMOTE("random absent insertions", random_absent_insertions)
    elements in a random order. *)
 
 let random_deletions n : recipes =
-  let recipe1 = 2 * n, (fun _ -> ITAdd Absent)
+  let recipe1 = 2 * n, (fun _ -> ITAddAbsent Absent)
   and recipe2 =     n, (fun _ -> ITRemove Present) in
   recipe1, recipe2
 
@@ -427,8 +426,8 @@ PROMOTE("random deletions", random_deletions)
    perform [n] insertions or deletions (half of each). *)
 
 let random_insertions_deletions n : recipes =
-  let recipe1 = n, (fun _ -> ITAdd Absent)
-  and recipe2 = n, (fun _ -> either (ITAdd Absent) (ITRemove Present)) in
+  let recipe1 = n, (fun _ -> ITAddAbsent Absent)
+  and recipe2 = n, (fun _ -> either (ITAddAbsent Absent) (ITRemove Present)) in
   recipe1, recipe2
 
 PROMOTE("random insertions and deletions", random_insertions_deletions)
@@ -438,7 +437,7 @@ PROMOTE("random insertions and deletions", random_insertions_deletions)
    keys (half of each). *)
 
 let random_lookups n : recipes =
-  let recipe1 = n, (fun _ -> ITAdd Absent)
+  let recipe1 = n, (fun _ -> ITAddAbsent Absent)
   and recipe2 = n, (fun _ -> ITMem ANY) in
   recipe1, recipe2
 
@@ -453,7 +452,7 @@ let everything n : recipes =
     if i < n/2 then
       (* During a first phase, we perform more insertions, and a few
          deletions and lookups. *)
-      if c < 80 then ITAdd ANY
+      if c < 80 then ITReplace ANY
       else if c < 90 then ITRemove ANY
       else ITMem ANY
     else
@@ -461,7 +460,7 @@ let everything n : recipes =
          insertions and deletions. *)
       if c < 80 then ITMem ANY
       else if c < 90 then ITRemove ANY
-      else ITAdd ANY
+      else ITReplace ANY
   in
   recipe1, recipe2
 
