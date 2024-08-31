@@ -2,22 +2,25 @@
 
 ## Features
 
-* Add a way of choosing a table's capacity and max occupancy rate,
+* Add a way of choosing a table's initial capacity and max occupancy rate,
   either by giving more parameters to the functor `Make_`,
   or by giving more parameters (with default values) to the function `create`.
   Check whether this degrades performance (with and without flambda).
 
 * Add missing operations:
-  `find_opt`,
   `replace`,
   `filter_map_inplace`,
   `fold`,
-  `to_seq`, `add_seq`, `replace_seq`, `of_seq`.
+  `to_seq`, `add_seq`, `replace_seq`, `of_seq`,
+  `to_seq_keys`, `to_seq_values`.
 
 * Check (improve) compatibility with `Stdlib.Hashtbl`,
   either by ensuring that our API matches the `Stdlib` API,
   or by providing a submodule that emulates the `Stdlib` API.
-  E.g., need `length` as a synonym for `cardinal`.
+  + `create` : take capacity as an argument
+  + `add` : return nothing
+  + need `find_opt`
+  + need `length` as a synonym for `cardinal`
 
 * Develop a `Sentinel` module.
   `Make` extends an existing type with one fresh sentinel.
@@ -35,10 +38,6 @@
 
 ## Cleanup
 
-* Finish cleaning up the code.
-
 * Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
-
-* Declare a suitable version constraint on `cppo`.
 
 * Release.
