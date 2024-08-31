@@ -2,13 +2,6 @@
 
 ## Features
 
-* We should offer a variant of `remove` that does nothing
-  when the key is absent, and returns `unit`.
-  This variant should probably be called `remove`.
-  Our current `remove` should be called `find_key_and_remove`.
-  In maps, we may also wish to have `find_value_and_remove`.
-  Adapt the benchmark accordingly.
-
 * Add a way of choosing a table's capacity and max occupancy rate,
   either by giving more parameters to the functor `Make_`,
   or by giving more parameters (with default values) to the function `create`.
