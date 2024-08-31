@@ -38,6 +38,10 @@
 
 ## Cleanup
 
+* Documentation: clarify which operations are "read accesses" (therefore
+  safe to use concurrently). In the code, document that these operations
+  cannot use a `SEARCH2`-like scheme, i.e., cannot overwrite a tombstone.
+
 * Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
 
 * Release.
