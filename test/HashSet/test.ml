@@ -102,6 +102,9 @@ let () =
   let spec = set ^>> fun s -> (absent s) % element ^> unit in
   declare "add_absent" spec R.add_absent C.add_absent;
 
+  let spec = set ^> element ^> bool in
+  declare "replace" spec R.replace C.replace;
+
   let spec = set ^> element ^!> element in
   declare "find_else_add" spec R.find_else_add C.find_else_add;
 

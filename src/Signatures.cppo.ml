@@ -115,6 +115,9 @@ module type SET = sig
      [add s x] has no effect and returns [false]. Otherwise, [add s x]
      inserts the element [x] into the set [s] and returns [true].
 
+     Thus, [add s x] returns [true] if and only if the cardinality of
+     the set [s] increases as a result of this operation.
+
      If necessary, the capacity of the set [s] is increased.
 
      Time complexity: {m O(1)}. *)
@@ -132,6 +135,19 @@ module type SET = sig
 
      Time complexity: {m O(1)}. *)
   val add_absent : set -> element -> unit
+
+  (**If some element that is equivalent to [x] is present in the set [s],
+     then [replace s x] removes this pre-existing element, inserts [x]
+     into the set [s], and returns [false]. Otherwise, [replace s x]
+     inserts [x] into the set [s] and returns [true].
+
+     Thus, [replace s x] returns [true] if and only if the cardinality of
+     the set [s] increases as a result of this operation.
+
+     If necessary, the capacity of the set [s] is increased.
+
+     Time complexity: {m O(1)}. *)
+  val replace : set -> element -> bool
 
   (** {2 Lookup} *)
 
@@ -324,10 +340,12 @@ module type MAP = sig
 
   (** {2 Insertion} *)
 
-  (**If [x] or some equivalent element is present in the map [m], then
-     [add m x v] has no effect and returns [false]. Otherwise, [add m x v]
-     inserts the key [x] with value [v] into the map [m] and returns
-     [true].
+  (**If [x] or some equivalent key is present in the map [m], then [add m x v]
+     has no effect and returns [false]. Otherwise, [add m x v] inserts the key
+     [x] with value [v] into the map [m] and returns [true].
+
+     Thus, [add m x v] returns [true] if and only if the cardinality of
+     the map [m] increases as a result of this operation.
 
      If necessary, the capacity of the map [m] is increased.
 
@@ -346,6 +364,20 @@ module type MAP = sig
 
      Time complexity: {m O(1)}. *)
   val add_absent : map -> key -> value -> unit
+
+  (**If some key that is equivalent to [x] is present in the map [m], then
+     [replace m x v] removes this pre-existing key and its value, inserts
+     the key [x] with value [v] into the map [m], and returns [false].
+     Otherwise, [replace m x v] inserts the key [x] with value [v] into
+     the map [m] and returns [true].
+
+     Thus, [replace m x v] returns [true] if and only if the cardinality
+     of the map [m] increases as a result of this operation.
+
+     If necessary, the capacity of the map [m] is increased.
+
+     Time complexity: {m O(1)}. *)
+  val replace : map -> key -> value -> bool
 
   (** {2 Lookup} *)
 

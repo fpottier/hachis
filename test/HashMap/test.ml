@@ -112,6 +112,9 @@ let () =
   let spec = map ^>> fun s -> (absent s) % key ^> value ^> unit in
   declare "add_absent" spec R.add_absent C.add_absent;
 
+  let spec = map ^> key ^> value ^> bool in
+  declare "replace" spec R.replace C.replace;
+
   let spec = map ^> key ^> value ^!> key in
   declare "find_key_else_add" spec
     R.find_key_else_add C.find_key_else_add;

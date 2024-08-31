@@ -700,6 +700,19 @@ SEARCH2(find_value_else_add,
 
 #endif
 
+(* [replace] always inserts the key [x] with value [v], possibly overwriting
+   a previous key and value. Thus, if no key that is equivalent to [x]
+   exists, then [x] and [v] are inserted; otherwise, the previous key and
+   value are replaced with [x] and [v]. *)
+
+SEARCH2(replace,
+  (* If [x] is not found, it is inserted at [j]. *)
+  WRITE_AND_POPULATE; true,
+  (* If [x] or an equivalent key is found,
+     [x] and the value [v] are written at [j]. *)
+  WRITE; false
+)
+
 (* -------------------------------------------------------------------------- *)
 
 (* Insertion: [add_absent]. *)
@@ -1059,6 +1072,12 @@ let find_value_else_add (s : table) (x : key) v =
     raise e
 
 #endif
+
+let replace (s : table) (x : key) ov : bool =
+  validate x;
+  let was_added = replace s x ov (start s x) in
+  if was_added then possibly_grow s;
+  was_added
 
 let[@inline] remove (s : table) (x : key) : unit =
   validate x;

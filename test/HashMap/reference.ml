@@ -62,6 +62,12 @@ end)
     assert (not was_present);
     H.add m x v
 
+  let replace m x v =
+    let was_present = H.mem m x in
+    let was_absent = not was_present in
+    H.replace m x v;
+    was_absent
+
   let find_key_else_add m x v =
     try
       find_key m x

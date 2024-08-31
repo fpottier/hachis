@@ -48,6 +48,12 @@ end) = struct
     assert (not was_present);
     H.add s x x
 
+  let replace s x =
+    let was_present = H.mem s x in
+    let was_absent = not was_present in
+    H.replace s x x;
+    was_absent
+
   let find_else_add s x =
     try
       find s x
