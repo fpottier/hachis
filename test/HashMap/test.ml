@@ -113,13 +113,16 @@ let () =
   declare "add_absent" spec R.add_absent C.add_absent;
 
   let spec = map ^> key ^> value ^!> key in
-  declare "find_key_else_add" spec R.find_key_else_add C.find_key_else_add;
+  declare "find_key_else_add" spec
+    R.find_key_else_add C.find_key_else_add;
 
   let spec = map ^> key ^> value ^!> value in
-  declare "find_value_else_add" spec R.find_value_else_add C.find_value_else_add;
+  declare "find_value_else_add" spec
+    R.find_value_else_add C.find_value_else_add;
 
   let spec = map ^> key ^!> key in
-  declare "remove" spec R.remove C.remove;
+  declare "find_key_and_remove" spec
+    R.find_key_and_remove C.find_key_and_remove;
 
   let spec = map ^> int in
   declare "cardinal" spec R.cardinal C.cardinal;

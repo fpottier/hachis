@@ -462,12 +462,11 @@ SEARCH_WITH_ACCU(length, accu,
   accu,
 accu + 1)
 
-(* [remove] searches for the key [x] and removes it if it is present. *)
-(* The Boolean result indicates whether [x] was found and removed. *)
+(* [find_key_and_remove] searches for the key [x] and removes it. *)
 (* The fields [s.population] and [s.occupation] are updated. *)
 (* The [value] array is unaffected. We tolerate garbage in it. *)
 
-SEARCH(remove,
+SEARCH(find_key_and_remove,
   raise Not_found,
   (* If a key [y] that is equivalent to [x] is found at index [j],
      then we decrease the population, zap slot [j], and return [y]. *)
@@ -1037,9 +1036,9 @@ let find_value_else_add (s : table) (x : key) v =
 
 #endif
 
-let[@inline] remove (s : table) (x : key) : key =
+let[@inline] find_key_and_remove (s : table) (x : key) : key =
   validate x;
-  remove s x (start s x)
+  find_key_and_remove s x (start s x)
 
 let clear (s : table) =
   s.population <- 0;
@@ -1215,6 +1214,7 @@ type set = table
 
 let find = find_key
 let find_else_add = find_key_else_add
+let find_and_remove = find_key_and_remove
 let iter = foreach_key
 
 #endif

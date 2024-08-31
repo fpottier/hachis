@@ -27,7 +27,7 @@ let () =
 (* This benchmark compares several implementations of a minimal HashSet API.  *)
 
 (* In [Stdlib.Hashtbl], [add] and [remove] return a result of type [unit],
-   as opposed to [bool], so we have to adopt the same impoverished API. *)
+   so we have to adopt the same API. *)
 
 (* In this API, the semantics of [add] is to replace an existing entry if
    there is one. The semantics of [remove] is to do nothing if there is no
@@ -69,7 +69,7 @@ module HashSet : API = struct
   include Hachis.HashSet.Make(V)(S)
   let[@inline] add s x = ignore (add s x)
   let[@inline] remove s x =
-    try ignore (remove s x) with Not_found -> ()
+    try ignore (find_and_remove s x) with Not_found -> ()
 end
 
 (* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
@@ -78,7 +78,7 @@ module HectorHashSet : API = struct
   include Hachis.HashSet.Make_(V)(S)(Hector.IntArray)
   let[@inline] add s x = ignore (add s x)
   let[@inline] remove s x =
-    try ignore (remove s x) with Not_found -> ()
+    try ignore (find_and_remove s x) with Not_found -> ()
 end
 
 (* Instantiate [Hachis.HashMap] so as to respect [API]. *)
@@ -90,7 +90,7 @@ module HashMap : API = struct
   let[@inline] add s x = ignore (add s x x)
   let[@inline] add_absent s x = add_absent s x x
   let[@inline] remove s x =
-    try ignore (remove s x) with Not_found -> ()
+    try ignore (find_key_and_remove s x) with Not_found -> ()
 end
 
 (* Instantiate [Stdlib.Hashtbl] so as to respect [API]. *)

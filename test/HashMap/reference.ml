@@ -76,7 +76,7 @@ end)
       add_absent m x v;
       raise Not_found
 
-  let remove m x =
+  let find_key_and_remove m x =
     let y = find_key m x in
     H.remove m x;
     y

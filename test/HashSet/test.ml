@@ -106,7 +106,7 @@ let () =
   declare "find_else_add" spec R.find_else_add C.find_else_add;
 
   let spec = set ^> element ^!> element in
-  declare "remove" spec R.remove C.remove;
+  declare "find_and_remove" spec R.find_and_remove C.find_and_remove;
 
   let spec = set ^> int in
   declare "cardinal" spec R.cardinal C.cardinal;

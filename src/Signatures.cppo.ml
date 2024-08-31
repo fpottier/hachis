@@ -162,13 +162,13 @@ module type SET = sig
 
   (** {2 Deletion} *)
 
-  (**If some element [y] that is equivalent to [x] is a member of the
-     set [s], then [remove s x] removes [y] from the set [s] and returns
-     [y]. Otherwise, the set [s] is unaffected, and [Not_found] is
+  (**If some element [y] that is equivalent to [x] is a member of the set
+     [s], then [find_and_remove s x] removes [y] from the set [s] and
+     returns [y]. Otherwise, the set [s] is unaffected, and [Not_found] is
      raised.
 
      Time complexity: {m O(1)}. *)
-  val remove : set -> element -> element
+  val find_and_remove : set -> element -> element
 
   (** {2 Iteration} *)
 
@@ -389,13 +389,12 @@ module type MAP = sig
 
   (** {2 Deletion} *)
 
-  (**If some key [y] that is equivalent to [x] is present in the map
-     [m], then [remove m x] removes [y] from the map [m] and returns
-     [y]. Otherwise, the map [m] is unaffected, and [Not_found] is
-     raised.
+  (**If some key [y] that is equivalent to [x] is present in the map [m],
+     then [find_key_and_remove m x] removes [y] from the map [m] and returns
+     [y]. Otherwise, the map [m] is unaffected, and [Not_found] is raised.
 
      Time complexity: {m O(1)}. *)
-  val remove : map -> key -> key
+  val find_key_and_remove : map -> key -> key
 
   (** {2 Iteration} *)
 
