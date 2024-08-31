@@ -8,7 +8,6 @@
   Check whether this degrades performance (with and without flambda).
 
 * Add missing operations:
-  `replace`,
   `filter_map_inplace`,
   `fold`,
   `to_seq`, `add_seq`, `replace_seq`, `of_seq`,
@@ -18,7 +17,7 @@
   either by ensuring that our API matches the `Stdlib` API,
   or by providing a submodule that emulates the `Stdlib` API.
   + `create` : take capacity as an argument
-  + `add` : return nothing
+  + `add` and `replace` : return nothing
   + need `find_opt`
   + need `length` as a synonym for `cardinal`
 
@@ -38,9 +37,18 @@
 
 ## Cleanup
 
+* Our current `add` does nothing if the key (or an equivalent key) is
+  present already; this is unlike `Hashtbl.add` or `Map.add`.
+  Probably it should be renamed `add_if_absent`.
+
 * Documentation: clarify which operations are "read accesses" (therefore
   safe to use concurrently). In the code, document that these operations
   cannot use a `SEARCH2`-like scheme, i.e., cannot overwrite a tombstone.
+
+* Benchmark: understand why "a bit of everything" does not give us a large
+  edge. Also, this benchmark does not exercise `add_absent`.
+
+* Benchmark more.
 
 * Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
 
