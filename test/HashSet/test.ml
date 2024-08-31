@@ -105,6 +105,9 @@ let () =
   let spec = set ^> element ^!> element in
   declare "find_else_add" spec R.find_else_add C.find_else_add;
 
+  let spec = set ^> element ^> unit in
+  declare "remove" spec R.remove C.remove;
+
   let spec = set ^> element ^!> element in
   declare "find_and_remove" spec R.find_and_remove C.find_and_remove;
 

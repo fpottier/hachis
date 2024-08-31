@@ -120,9 +120,16 @@ let () =
   declare "find_value_else_add" spec
     R.find_value_else_add C.find_value_else_add;
 
+  let spec = map ^> key ^> unit in
+  declare "remove" spec R.remove C.remove;
+
   let spec = map ^> key ^!> key in
   declare "find_key_and_remove" spec
     R.find_key_and_remove C.find_key_and_remove;
+
+  let spec = map ^> key ^!> value in
+  declare "find_value_and_remove" spec
+    R.find_value_and_remove C.find_value_and_remove;
 
   let spec = map ^> int in
   declare "cardinal" spec R.cardinal C.cardinal;

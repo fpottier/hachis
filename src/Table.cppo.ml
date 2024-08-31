@@ -462,9 +462,21 @@ SEARCH_WITH_ACCU(length, accu,
   accu,
 accu + 1)
 
-(* [find_key_and_remove] searches for the key [x] and removes it. *)
+(* [remove] searches for the key [x] (or some equivalent key). If a key
+   [y] is found, then this key is removed. Otherwise, nothing happens. *)
 (* The fields [s.population] and [s.occupation] are updated. *)
 (* The [value] array is unaffected. We tolerate garbage in it. *)
+
+SEARCH(remove,
+  (),
+  (* If a key [y] that is equivalent to [x] is found at index [j],
+     then we decrease the population, zap slot [j], and return [y]. *)
+  s.population <- s.population - 1; zap s j
+)
+
+(* [find_key_and_remove] is analogous to [remove], except the key [y]
+   is returned (if such a key is found). Otherwise, an exception is
+   raised. *)
 
 SEARCH(find_key_and_remove,
   raise Not_found,
@@ -472,6 +484,18 @@ SEARCH(find_key_and_remove,
      then we decrease the population, zap slot [j], and return [y]. *)
   s.population <- s.population - 1; zap s j; y
 )
+
+#ifdef ENABLE_MAP
+
+SEARCH(find_value_and_remove,
+  raise Not_found,
+  (* If a key is found at index [j], then we decrease the population,
+     read the value [v] at index [j], zap slot [j], and return [v]. *)
+  s.population <- s.population - 1;
+  let v = get_value s j in zap s j; v
+)
+
+#endif
 
 (* -------------------------------------------------------------------------- *)
 
@@ -1036,9 +1060,21 @@ let find_value_else_add (s : table) (x : key) v =
 
 #endif
 
+let[@inline] remove (s : table) (x : key) : unit =
+  validate x;
+  remove s x (start s x)
+
 let[@inline] find_key_and_remove (s : table) (x : key) : key =
   validate x;
   find_key_and_remove s x (start s x)
+
+#ifdef ENABLE_MAP
+
+let[@inline] find_value_and_remove (s : table) (x : key) : value =
+  validate x;
+  find_value_and_remove s x (start s x)
+
+#endif
 
 let clear (s : table) =
   s.population <- 0;

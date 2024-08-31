@@ -76,10 +76,18 @@ end)
       add_absent m x v;
       raise Not_found
 
+  let remove =
+    H.remove
+
   let find_key_and_remove m x =
     let y = find_key m x in
     H.remove m x;
     y
+
+  let find_value_and_remove m x =
+    let v = find_value m x in
+    H.remove m x;
+    v
 
   let cardinal m =
     H.length m

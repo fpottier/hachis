@@ -55,6 +55,9 @@ end) = struct
       add_absent s x;
       raise Not_found
 
+  let remove =
+    H.remove
+
   let find_and_remove s x =
     let y = H.find s x in
     H.remove s x;
