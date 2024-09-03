@@ -112,16 +112,17 @@ module type SET = sig
   (** {2 Insertion} *)
 
   (**If [x] or some equivalent element is a member of the set [s], then
-     [add s x] has no effect and returns [false]. Otherwise, [add s x]
-     inserts the element [x] into the set [s] and returns [true].
+     [add_if_absent s x] has no effect and returns [false]. Otherwise,
+     [add_if_absent s x] inserts the element [x] into the set [s] and
+     returns [true].
 
-     Thus, [add s x] returns [true] if and only if the cardinality of
-     the set [s] increases as a result of this operation.
+     Thus, [add_if_absent s x] returns [true] if and only if the cardinality
+     of the set [s] increases as a result of this operation.
 
      If necessary, the capacity of the set [s] is increased.
 
      Time complexity: {m O(1)}. *)
-  val add : set -> element -> bool
+  val add_if_absent : set -> element -> bool
 
   (**[add_absent s x] inserts the element [x] into the set [s]. No
      result is returned. {b The element [x], or an element [y] that is
@@ -340,17 +341,18 @@ module type MAP = sig
 
   (** {2 Insertion} *)
 
-  (**If [x] or some equivalent key is present in the map [m], then [add m x v]
-     has no effect and returns [false]. Otherwise, [add m x v] inserts the key
-     [x] with value [v] into the map [m] and returns [true].
+  (**If [x] or some equivalent key is present in the map [m], then
+     [add_if_absent m x v] has no effect and returns [false]. Otherwise,
+     [add_if_absent m x v] inserts the key [x] with value [v] into the map
+     [m] and returns [true].
 
-     Thus, [add m x v] returns [true] if and only if the cardinality of
-     the map [m] increases as a result of this operation.
+     Thus, [add_if_absent m x v] returns [true] if and only if the
+     cardinality of the map [m] increases as a result of this operation.
 
      If necessary, the capacity of the map [m] is increased.
 
      Time complexity: {m O(1)}. *)
-  val add : map -> key -> value -> bool
+  val add_if_absent : map -> key -> value -> bool
 
   (**[add_absent m x v] inserts the key [x] with value [v] into the map
      [m]. No result is returned. {b The key [x], or a key [y] that is

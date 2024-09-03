@@ -97,7 +97,7 @@ let () =
   declare "find" spec R.find C.find;
 
   let spec = set ^> element ^> bool in
-  declare "add" spec R.add C.add;
+  declare "add_if_absent" spec R.add_if_absent C.add_if_absent;
 
   let spec = set ^>> fun s -> (absent s) % element ^> unit in
   declare "add_absent" spec R.add_absent C.add_absent;

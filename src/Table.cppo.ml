@@ -660,7 +660,7 @@ and CONCAT(SELF, _aux) (s : table) (x : key) ov (t : int) (j : int) =
 
 (* Insertion. *)
 
-(* [add] searches for the key [x] and inserts it if it is absent. *)
+(* [add_if_absent] searches for the key [x] and inserts it if it is absent. *)
 (* The Boolean result indicates whether [x] was inserted. *)
 (* The fields [s.population] and [s.occupation] are updated. *)
 
@@ -668,19 +668,19 @@ and CONCAT(SELF, _aux) (s : table) (x : key) ov (t : int) (j : int) =
    in addition to the key [x], and this value is written to
    the [value] array. *)
 
-SEARCH2(add,
+SEARCH2(add_if_absent,
   (* If [x] is not found, it is inserted at [j], and [true] is returned. *)
   WRITE_AND_POPULATE; true,
   (* If [x] or an equivalent key is found, [false] is returned. *)
   ignore j; false
 )
 
-(* In [add], in case a tombstone is encountered, one might be tempted to
-   always overwrite this tombstone with [x], then use [remove] to find and
-   remove any key [y] that is equivalent to [x] and that is already a member
-   of the table. However, this does not work. If the table already contains a
-   key [y] that is equivalent to [x], then [add] is expected to leave [y] in
-   the table; it must not replace [y] with [x]. *)
+(* In [add_if_absent], in case a tombstone is encountered, one might be
+   tempted to always overwrite this tombstone with [x], then use [remove] to
+   find and remove any key [y] that is equivalent to [x] and that is already
+   a member of the table. However, this does not work. If the table already
+   contains a key [y] that is equivalent to [x], then [add_if_absent] is
+   expected to leave [y] in the table; it must not replace [y] with [x]. *)
 
 (* [find_key_else_add] searches for [x] and inserts it if it is absent. *)
 (* If [x] was absent then [Not_found] is raised after [x] is inserted. *)
@@ -726,7 +726,8 @@ SEARCH2(replace,
 
 (* Insertion: [add_absent]. *)
 
-(* A special case of [add], where we assume that [x] is not in the table. *)
+(* A special case of [add_if_absent], where we assume that [x] is not in the
+   table. *)
 
 (* [x] is always inserted. No Boolean result is returned. *)
 
@@ -755,7 +756,7 @@ let rec add_absent (s : table) (x : key) ov (j : int) =
 
 (* -------------------------------------------------------------------------- *)
 
-(* [add_absent_no_updates] is a special case of [add], where:
+(* [add_absent_no_updates] is a special case of [add_if_absent], where:
 
    + we assume that [x] is not in the table;
    + we assume that there are no tombstones;
@@ -1051,9 +1052,9 @@ let[@inline] cleanup (s : table) =
   if s.occupation > s.population then
     elim s
 
-let add (s : table) (x : key) ov : bool =
+let add_if_absent (s : table) (x : key) ov : bool =
   validate x;
-  let was_added = add s x ov (start s x) in
+  let was_added = add_if_absent s x ov (start s x) in
   if was_added then possibly_grow s;
   was_added
 

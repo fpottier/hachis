@@ -107,7 +107,7 @@ let () =
   declare "find_value" spec R.find_value C.find_value;
 
   let spec = map ^> key ^> value ^> bool in
-  declare "add" spec R.add C.add;
+  declare "add_if_absent" spec R.add_if_absent C.add_if_absent;
 
   let spec = map ^>> fun s -> (absent s) % key ^> value ^> unit in
   declare "add_absent" spec R.add_absent C.add_absent;

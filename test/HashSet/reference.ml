@@ -36,7 +36,7 @@ end) = struct
      present several times. We must compensate for this, and not
      add an element if it is already in the set. *)
 
-  let add s x =
+  let add_if_absent s x =
     let was_present = H.mem s x in
     let was_absent = not was_present in
     if was_absent then

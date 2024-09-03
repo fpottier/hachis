@@ -50,7 +50,7 @@ end)
      present several times. We must compensate for this, and not
      add an element if it is already in the map. *)
 
-  let add m x v =
+  let add_if_absent m x v =
     let was_present = H.mem m x in
     let was_absent = not was_present in
     if was_absent then
