@@ -14,11 +14,12 @@ As a result, these data structures offer good locality.
 
 {1:caution Words of Caution}
 
-[hachis]'s sets and maps are {b not thread-safe} and {b do not include a protection
-against data races}: concurrent accesses to a set or map, where at least one
-thread attempts to modify the set or map, are forbidden and {b can compromise
-memory safety} (that is, they can cause a hard crash or silent memory
-corruption). Concurrent read accesses are safe.
+[hachis]'s sets and maps are {b not thread-safe} and {b do not include a
+protection against data races}: concurrent accesses to a set or map, where
+at least one thread attempts to modify the set or map, are forbidden and
+{b can compromise memory safety} (that is, they can cause a hard crash or
+silent memory corruption). Concurrent read accesses (`mem`, `find`,
+`find_key`, `find_value`) are safe.
 
 [hachis]'s maps do {b not include a protection against memory leaks}.
 That is, after a pair of a key [x] and value [v] has been deleted from
