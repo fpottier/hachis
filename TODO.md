@@ -40,7 +40,12 @@
 * Benchmark: understand why "a bit of everything" does not give us a large
   edge.
 
-* The benchmark does not exercise `add_if_absent` or `add_absent`.
+* The benchmark does not exercise `add_if_absent`.
+
+* If `add_absent` is not substantially faster than `add_if_absent` or `replace`
+  then perhaps it should be removed from the API.
+  It is a dangerous function, as it has a nontrivial precondition.
+  Are there other dangerous functions?
 
 * Benchmark more.
 
