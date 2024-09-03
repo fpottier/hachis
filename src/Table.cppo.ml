@@ -424,7 +424,12 @@ SEARCH_WITH_ACCU(SELF,, ABSENT, PRESENT,)
 
 (* -------------------------------------------------------------------------- *)
 
-(* Search functions. *)
+(* Lookup functions. *)
+
+(* These functions perform read-only access to the table, so they can safely
+   be called by several concurrent threads. This is documented. Therefore,
+   these functions *must not* use the search template [SEARCH2], which moves
+   elements within the table, therefore performs write accesses. *)
 
 (* [mem] determines whether the key [x] (or some equivalent key) is present
    in the table. It returns a Boolean result. *)
@@ -461,6 +466,10 @@ SEARCH_WITH_ACCU(length, accu,
   accu,
   accu,
 accu + 1)
+
+(* -------------------------------------------------------------------------- *)
+
+(* Deletion functions. *)
 
 (* [remove] searches for the key [x] (or some equivalent key). If a key
    [y] is found, then this key is removed. Otherwise, nothing happens. *)
