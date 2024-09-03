@@ -41,10 +41,6 @@
   present already; this is unlike `Hashtbl.add` or `Map.add`.
   Probably it should be renamed `add_if_absent`.
 
-* Documentation: clarify which operations are "read accesses" (therefore
-  safe to use concurrently). In the code, document that these operations
-  cannot use a `SEARCH2`-like scheme, i.e., cannot overwrite a tombstone.
-
 * Benchmark: understand why "a bit of everything" does not give us a large
   edge. Also, this benchmark does not exercise `add_absent`.
 
