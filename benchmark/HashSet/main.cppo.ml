@@ -388,7 +388,7 @@ let either x y =
 
 let consecutive_insertions n : recipes =
   let recipe1 = empty
-  and recipe2 = n, (fun i -> ITAddAbsent (Key (2 * i))) in
+  and recipe2 = n, (fun i -> ITReplace (Key (2 * i))) in
   recipe1, recipe2
 
 PROMOTE("consecutive insertions", consecutive_insertions)
