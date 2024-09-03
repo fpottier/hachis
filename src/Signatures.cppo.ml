@@ -425,7 +425,9 @@ module type MAP = sig
      inserted into the map [m], and [Not_found] is raised.
 
      [find_value_else_add m x v] is equivalent to
-     [try find_value m x v with Not_found -> add_absent m x v; raise Not_found]. *)
+     [try find_value m x v with Not_found -> add_absent m x v; raise Not_found].
+
+     Time complexity: {m O(1)}. *)
   val find_value_else_add : map -> key -> value -> value
 
   (** {2 Deletion} *)
