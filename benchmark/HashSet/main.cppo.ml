@@ -85,9 +85,7 @@ end
 
 (* Instantiate [Stdlib.Hashtbl] so as to respect [API]. *)
 
-(* In [Stdlib.Hashtbl], [add] hides an existing entry, if there is
-   one, so a key can be present several times in the table. We must
-   avoid this: we must implement [add] using [replace]. *)
+(* [add_absent] is implemented using [add]. *)
 
 module Hashtbl : API = struct
   include Stdlib.Hashtbl.Make(V)
@@ -99,6 +97,8 @@ module Hashtbl : API = struct
 end
 
 (* Instantiate [Stdlib.Set] so as to respect [API]. *)
+
+(* [add_absent] is implemented using [add]. *)
 
 module Set : API = struct
   open Set.Make(V)
@@ -112,6 +112,8 @@ module Set : API = struct
 end
 
 (* Instantiate [Baby.W.Set] so as to respect [API]. *)
+
+(* [add_absent] is implemented using [add]. *)
 
 module BabyWSet : API = struct
   open Baby.W.Set.Make(V)
