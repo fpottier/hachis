@@ -381,6 +381,14 @@ let either x y =
 
 #define ANY (either Absent Present)
 
+(* A preparation recipe, which constructs a set of cardinal roughly [n], where
+   both insertions and deletions have been performed. *)
+
+let random_state_with_tombstones n : recipe =
+  2*n, fun i ->
+    if i < n then ITReplace Absent
+    else either (ITReplace Absent) (ITRemove Present)
+
 (* Consecutive insertions: starting with an empty set, successively insert
    all integers from [0] to [n-1]. *)
 
@@ -413,6 +421,28 @@ let random_insertions n : recipes =
 
 PROMOTE("random insertions", random_insertions)
 
+(* Random absent insertions using [replace]: starting with a set of cardinal
+   [n], insert [n] random absent integers using [replace]. *)
+
+let random_absent_insertions_replace n : recipes =
+  let recipe1 = random_state_with_tombstones n
+  and recipe2 = n, (fun _ -> ITReplace Absent) in
+  recipe1, recipe2
+
+PROMOTE("random absent insertions (with tombstones) (replace)",
+  random_absent_insertions_replace)
+
+(* Random absent insertions using [add_absent]: starting with a set of
+   cardinal [n], insert [n] random absent integers using [replace]. *)
+
+let random_absent_insertions_add_absent n : recipes =
+  let recipe1 = random_state_with_tombstones n
+  and recipe2 = n, (fun _ -> ITAddAbsent Absent) in
+  recipe1, recipe2
+
+PROMOTE("random absent insertions (with tombstones) (add_absent)",
+  random_absent_insertions_add_absent)
+
 (* Random deletions: starting with a set of cardinal [2 * n], remove [n]
    elements in a random order. *)
 
@@ -444,16 +474,13 @@ let random_lookups n : recipes =
 
 PROMOTE("random lookups", random_lookups)
 
-(* Random lookups (with tombstones): starting with a set of cardinal roughly [n],
-   where insertions and deletions have been performed, perform [n] lookups,
-   including lookups of absent keys and lookups of present keys (half of
-   each). *)
+(* Random lookups (with tombstones): starting with a set of cardinal roughly
+   [n], where insertions and deletions have been performed, perform [n]
+   lookups, including lookups of absent keys and lookups of present keys (half
+   of each). *)
 
 let random_lookups_tombstones n : recipes =
-  let recipe1 = 2*n, (fun i ->
-    if i < n then ITReplace Absent
-    else either (ITReplace Absent) (ITRemove Present)
-  )
+  let recipe1 = random_state_with_tombstones n
   and recipe2 = n, (fun _ -> ITMem ANY) in
   recipe1, recipe2
 
@@ -493,6 +520,8 @@ let () =
   Arg.parse [
     "--consecutive-insertions", int consecutive_insertions, "";
     "--consecutive-absent-insertions", int consecutive_absent_insertions, "";
+    "--random-absent-insertions-replace", int random_absent_insertions_replace, "";
+    "--random-absent-insertions-add-absent", int random_absent_insertions_add_absent, "";
     "--random-deletions", int random_deletions, "";
     "--random-insertions", int random_insertions, "";
     "--random-insertions-deletions", int random_insertions_deletions, "";

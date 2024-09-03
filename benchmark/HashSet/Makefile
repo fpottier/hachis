@@ -26,6 +26,8 @@ BENCHMARKS := \
   random-insertions \
   random-deletions \
   random-insertions-deletions \
+  random-absent-insertions-replace \
+  random-absent-insertions-add-absent \
   random-lookups \
   random-lookups-tombstones \
   everything \
