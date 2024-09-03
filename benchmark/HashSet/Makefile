@@ -22,11 +22,12 @@ N := 2000000
 # List of the benchmarks that should be executed.
 BENCHMARKS := \
   consecutive-insertions \
+  consecutive-absent-insertions \
   random-insertions \
-  random-absent-insertions \
   random-deletions \
   random-insertions-deletions \
   random-lookups \
+  random-lookups-tombstones \
   everything \
 
 .PHONY: bench

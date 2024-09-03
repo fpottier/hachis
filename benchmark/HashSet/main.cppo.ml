@@ -393,6 +393,16 @@ let consecutive_insertions n : recipes =
 
 PROMOTE("consecutive insertions", consecutive_insertions)
 
+(* Consecutive absent insertions: starting with an empty set, successively
+   insert all integers from [0] to [n-1], using [add_absent]. *)
+
+let consecutive_absent_insertions n : recipes =
+  let recipe1 = empty
+  and recipe2 = n, (fun i -> ITAddAbsent (Key (2 * i))) in
+  recipe1, recipe2
+
+PROMOTE("consecutive absent insertions", consecutive_absent_insertions)
+
 (* Random insertions: starting with an empty set, insert [n] random
    integers. *)
 
@@ -403,22 +413,11 @@ let random_insertions n : recipes =
 
 PROMOTE("random insertions", random_insertions)
 
-(* Random absent insertions: starting with an empty set, insert [n]
-   random integers, which are not present already, and use
-   [add_absent]. *)
-
-let random_absent_insertions n : recipes =
-  let recipe1 = empty
-  and recipe2 = n, (fun _ -> ITAddAbsent Absent) in
-  recipe1, recipe2
-
-PROMOTE("random absent insertions", random_absent_insertions)
-
 (* Random deletions: starting with a set of cardinal [2 * n], remove [n]
    elements in a random order. *)
 
 let random_deletions n : recipes =
-  let recipe1 = 2 * n, (fun _ -> ITAddAbsent Absent)
+  let recipe1 = 2 * n, (fun _ -> ITReplace Absent)
   and recipe2 =     n, (fun _ -> ITRemove Present) in
   recipe1, recipe2
 
@@ -428,8 +427,8 @@ PROMOTE("random deletions", random_deletions)
    perform [n] insertions or deletions (half of each). *)
 
 let random_insertions_deletions n : recipes =
-  let recipe1 = n, (fun _ -> ITAddAbsent Absent)
-  and recipe2 = n, (fun _ -> either (ITAddAbsent Absent) (ITRemove Present)) in
+  let recipe1 = n, (fun _ -> ITReplace Absent)
+  and recipe2 = n, (fun _ -> either (ITReplace Absent) (ITRemove Present)) in
   recipe1, recipe2
 
 PROMOTE("random insertions and deletions", random_insertions_deletions)
@@ -439,11 +438,26 @@ PROMOTE("random insertions and deletions", random_insertions_deletions)
    keys (half of each). *)
 
 let random_lookups n : recipes =
-  let recipe1 = n, (fun _ -> ITAddAbsent Absent)
+  let recipe1 = n, (fun _ -> ITReplace Absent)
   and recipe2 = n, (fun _ -> ITMem ANY) in
   recipe1, recipe2
 
 PROMOTE("random lookups", random_lookups)
+
+(* Random lookups (with tombstones): starting with a set of cardinal roughly [n],
+   where insertions and deletions have been performed, perform [n] lookups,
+   including lookups of absent keys and lookups of present keys (half of
+   each). *)
+
+let random_lookups_tombstones n : recipes =
+  let recipe1 = 2*n, (fun i ->
+    if i < n then ITReplace Absent
+    else either (ITReplace Absent) (ITRemove Present)
+  )
+  and recipe2 = n, (fun _ -> ITMem ANY) in
+  recipe1, recipe2
+
+PROMOTE("random lookups (with tombstones)", random_lookups_tombstones)
 
 (* A bit of everything: random insertions, deletions, and lookups. *)
 
@@ -478,11 +492,12 @@ let int (benchmarks : int -> B.benchmark list) : Arg.spec =
 let () =
   Arg.parse [
     "--consecutive-insertions", int consecutive_insertions, "";
+    "--consecutive-absent-insertions", int consecutive_absent_insertions, "";
     "--random-deletions", int random_deletions, "";
     "--random-insertions", int random_insertions, "";
-    "--random-absent-insertions", int random_absent_insertions, "";
     "--random-insertions-deletions", int random_insertions_deletions, "";
     "--random-lookups", int random_lookups, "";
+    "--random-lookups-tombstones", int random_lookups_tombstones, "";
     "--everything", int everything, "";
     "--quota", Arg.Set_string quota, "<quota> set time quota (default: 5.0s)";
   ] (fun _ -> ()) "Invalid usage"
