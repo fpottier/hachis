@@ -37,12 +37,10 @@
 
 ## Cleanup
 
-* Our current `add` does nothing if the key (or an equivalent key) is
-  present already; this is unlike `Hashtbl.add` or `Map.add`.
-  Probably it should be renamed `add_if_absent`.
-
 * Benchmark: understand why "a bit of everything" does not give us a large
-  edge. Also, this benchmark does not exercise `add_absent`.
+  edge.
+
+* The benchmark does not exercise `add_if_absent` or `add_absent`.
 
 * Benchmark more.
 
