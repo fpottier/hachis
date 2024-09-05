@@ -68,10 +68,10 @@ end
 
 (* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
 
-module HectorHashSet : API = struct
-  include Hachis.HashSet.Make_(V)(S)(Hector.IntArray)
-  let[@inline] replace s x = ignore (replace s x)
-end
+(* module HectorHashSet : API = struct *)
+(*   include Hachis.HashSet.Make_(V)(S)(Hector.IntArray) *)
+(*   let[@inline] replace s x = ignore (replace s x) *)
+(* end *)
 
 (* Instantiate [Hachis.HashMap] so as to respect [API]. *)
 

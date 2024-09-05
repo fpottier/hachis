@@ -18,6 +18,5 @@
     (cppo (>= 1.7.0))
     (monolith :with-test)
     (ocamlfind :with-test)
-    (hector :with-test)
   )
 )
