@@ -43,12 +43,14 @@
 * The benchmark does not exercise `add_if_absent`.
 
 * If `add_absent` is not substantially faster than `add_if_absent` or `replace`
-  then perhaps it should be removed from the API.
+  then perhaps it should be removed from the API, or renamed to `unsafe_add_absent`.
   It is a dangerous function, as it has a nontrivial precondition.
   Are there other dangerous functions?
 
-* Benchmark more.
+* Benchmark using `pbench`. Keep the number of operations just high enough to
+  obtain meaningful measurements. Test with a range of table sizes.
 
-* Documentation: add a careful claim about speed. (Benchmark with and without flambda.)
+* Documentation: add a careful claim about speed.
+  (Benchmark with OCaml 4 and 5, with and without flambda.)
 
 * Release.
