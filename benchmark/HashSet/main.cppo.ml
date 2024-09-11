@@ -282,7 +282,7 @@ let print_statistics (seq : sequence) =
     | IRemove    _ -> incr remove
     | IMem       _ -> incr mem
   ) seq;
-  printf "This scenario has %d replacements, %d insertions, %d deletions, and %d lookups.\n"
+  eprintf "This scenario has %d replacements, %d insertions, %d deletions, and %d lookups.\n%!"
     !replace !add !remove !mem
 
 (* [choose_scenario u (r1, r2)] randomly chooses a scenario that begins with
@@ -299,9 +299,9 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
   let seq2 = choose_sequence s u r2 in
   let max_pop = R.get_max_pop s in
   print_statistics seq2;
-  printf "The initial population is %d.\n" initial_pop;
-  printf "The maximum population is %d.\n" max_pop;
-  printf "\n%!";
+  eprintf "The initial population is %d.\n" initial_pop;
+  eprintf "The maximum population is %d.\n" max_pop;
+  eprintf "\n%!";
   seq1, seq2
 
 (* -------------------------------------------------------------------------- *)
@@ -366,7 +366,7 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
 
 #define PROMOTE(NAME, F) \
   let F n : B.benchmark list = \
-    printf "Scenario: %s\n" NAME; \
+    eprintf "Scenario: %s\n%!" NAME; \
     let u = 10 * n in \
     let recipes = F n in \
     let scenario = choose_scenario u recipes in \
