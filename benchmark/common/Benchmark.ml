@@ -123,6 +123,23 @@ let benchmark ~name ~quota ~basis ~run =
 
 (* -------------------------------------------------------------------------- *)
 
+(* Reading the time. *)
+
+(* [Time.now()] reads the wall-clock time. This creates a problem if the
+   machine goes to sleep while a benchmark is running. So, we abandon
+   the use of [Time.now] and [Time.diff].
+
+   Instead, we prefer to use [Unix.times()], which gives us access to the
+   user time of our process, in seconds. *)
+
+let now () : float =
+  Unix.((times()).tms_utime)
+
+let diff (now : float) (start : float) : float =
+  (now -. start)
+
+(* -------------------------------------------------------------------------- *)
+
 (* The function [drive] drives a benchmark. *)
 
 let drive { name; quota; basis; run } =
@@ -139,11 +156,11 @@ let drive { name; quota; basis; run } =
   let scale = 1.05 in
   (* Record our start time and prepare to stop after a certain amount of time
      has elapsed. *)
-  let start = Time.now() in
-  let elapsed () = Time.diff (Time.now()) start in
+  let start = now() in
+  let elapsed () = diff (now()) start in
   (* The main loop. *)
   while
-    Span.(<=) (elapsed()) quota &&
+    Span.(<=) (Span.of_sec (elapsed())) quota &&
     !index < max_measurements
   do
     (* Run the setup stage. This phase is not timed.
@@ -156,19 +173,19 @@ let drive { name; quota; basis; run } =
     stabilize_gc ();
     (* Perform pre-run measurements. *)
     let gc1 = Gc.quick_stat () in
-    let t1 = Time.now () in
+    let t1 = now () in
     let c1 = TSC.now () in
     (* Run each copy of the benchmark in this group. *)
     for i = 0 to !repetitions-1 do group.(i) () done;
     (* Perform post-run measurements. *)
     let c2 = TSC.now () in
-    let t2 = Time.now () in
+    let t2 = now () in
     let gc2 = Gc.quick_stat () in
     (* Save this measurement. *)
     let m = measurements.(postincrement index) in
     m.repetitions <- !repetitions;
     m.cycles      <- float_of_int (TSC.Span.to_int_exn (TSC.diff c2 c1));
-    m.nanos       <- Span.to_ns (Time.diff t2 t1);
+    m.nanos       <- 1.0e9 *. (diff t2 t1);
     m.minor       <- gc2.minor_words -. gc1.minor_words;
     m.major       <- gc2.major_words -. gc1.major_words;
     m.promoted    <- gc2.promoted_words -. gc1.promoted_words;
@@ -180,7 +197,7 @@ let drive { name; quota; basis; run } =
           (!repetitions + 1)
           (Float.iround_towards_zero_exn (Float.of_int !repetitions *. scale));
   done;
-  let duration = elapsed() in
+  let duration = Span.of_sec (elapsed()) in
   let n = !index in
   let measurements = Array.sub measurements 0 n in
   eprintf "Total time (including setup): %s; measurements: %03d; max group size: %03d.\n%!"
