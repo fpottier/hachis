@@ -256,8 +256,14 @@ let initial_capacity =
 (* To avoid floating-point computations, we express [max_occupancy] as an
    integer value, which we multiply by 1/128. *)
 
+(* [max_occupancy] must be at least 1/2. This guarantees that, after
+   calling [cleanup], the current occupancy rate is at least 1/4. *)
+
 let max_occupancy =
   105 (* 105/128 = 0.82 *)
+
+let () =
+  assert (max_occupancy >= 64)
 
 (* [crowded] determines whether the table's maximum occupancy rate has
    been exceeded. It is paremeterized by the table's current occupation
