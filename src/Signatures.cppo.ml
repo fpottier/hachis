@@ -174,14 +174,14 @@ module type SET = sig
      where {m c} is the capacity of the set [s]
      and {m n} is its cardinality.
 
-     If the occupancy rate {m n/c} remains above a certain
-     fixed threshold, then this time complexity is {m O(n)}
-     in the worst case and {m O(1)} in expectation.
+     If the occupancy rate {m n/c} remains above a certain fixed
+     threshold, then these bounds can be written under the form
+     {m O(n)} in the worst case and {m O(1)} in expectation.
 
-     If [choose] is used in a loop where elements are removed
-     from the set then it is recommended to monitor the set's
-     occupancy rate and to call [cleanup] so as to ensure that
-     the occupancy rate does not become too low. *)
+     If [choose] is used in a loop where elements are removed from the
+     set then it is recommended to monitor the set's occupancy rate.
+     If the occupancy rate drops below {m 1/4}, call [cleanup] so as
+     to shrink the table and guarantee a higher occupancy rate. *)
   val choose : set -> element
 
   (** {2 Insertion and lookup} *)
@@ -439,14 +439,14 @@ module type MAP = sig
      where {m c} is the capacity of the map [m]
      and {m n} is its cardinality.
 
-     If the occupancy rate {m n/c} remains above a certain
-     fixed threshold, then this time complexity is {m O(n)}
-     in the worst case and {m O(1)} in expectation.
+     If the occupancy rate {m n/c} remains above a certain fixed
+     threshold, then these bounds can be written under the form
+     {m O(n)} in the worst case and {m O(1)} in expectation.
 
-     If [choose] is used in a loop where entries are removed
-     from the map then it is recommended to monitor the map's
-     occupancy rate and to call [cleanup] so as to ensure that
-     the occupancy rate does not become too low. *)
+     If [choose] is used in a loop where entries are removed from the
+     map then it is recommended to monitor the map's occupancy rate.
+     If the occupancy rate drops below {m 1/4}, call [cleanup] so as
+     to shrink the table and guarantee a higher occupancy rate. *)
   val choose : map -> key
 
   (** {2 Insertion and lookup} *)
