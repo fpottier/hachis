@@ -1261,6 +1261,9 @@ type t = table
 
 let cardinal = population
 
+let[@inline] is_empty s =
+  cardinal s = 0
+
 #ifdef ENABLE_MAP
 
 (* [map]-specific names: *)

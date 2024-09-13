@@ -216,6 +216,11 @@ module type SET = sig
      Time complexity: {m O(1)}. *)
   val cardinal : set -> int
 
+  (**[is_empty s] is equivalent to [cardinal s = 0].
+
+     Time complexity: {m O(1)}. *)
+  val is_empty : set -> bool
+
   (** {2 Cleanup} *)
 
   (**[clear s] empties the set [s]. The internal data array is retained,
@@ -484,6 +489,11 @@ module type MAP = sig
 
      Time complexity: {m O(1)}. *)
   val cardinal : map -> int
+
+  (**[is_empty m] is equivalent to [cardinal m = 0].
+
+     Time complexity: {m O(1)}. *)
+  val is_empty : map -> bool
 
   (** {2 Cleanup} *)
 
