@@ -136,23 +136,29 @@ end
    [choose] picks a random element out of a nonempty set. *)
 
 module R = struct
-  open Baby.W.Set.Make(V)
+  open Hachis.HashSet.Make(V)(S)
   type t = { mutable max_pop: int; mutable now: set }
-  let create () = { max_pop = 0; now = empty }
+  let create () =
+    { max_pop = 0; now = create() }
   let replace s x =
-    s.now <- add x s.now;
+    ignore (replace s.now x);
     let n = cardinal s.now in
     if s.max_pop < n then s.max_pop <- n
-  let remove s x = (s.now <- remove x s.now)
-  let mem s x = mem x s.now
-  let is_empty s = is_empty s.now
+  let remove s x =
+    remove s.now x
+  let mem s x =
+    mem s.now x
+  let cardinal s =
+    cardinal s.now
+  let is_empty s =
+    is_empty s.now
   let choose s =
-    let n = cardinal s.now in
-    assert (n > 0);
-    let i = Random.int n in
-    get s.now i
-  let reset_max_pop s = s.max_pop <- cardinal s.now
-  let get_max_pop s = s.max_pop
+    assert (cardinal s > 0);
+    choose s.now
+  let reset_max_pop s =
+    s.max_pop <- cardinal s
+  let get_max_pop s =
+    s.max_pop
 end
 
 (* -------------------------------------------------------------------------- *)
