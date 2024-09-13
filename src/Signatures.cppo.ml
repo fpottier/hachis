@@ -169,6 +169,9 @@ module type SET = sig
      element of the set [s]. This element is chosen at random. Otherwise,
      [choose s] raises [Not_found].
 
+     [choose] invokes [Random.int]. Two successive calls to [choose s] can
+     return different results.
+
      Time complexity: {m O(c)} in the worst case
      and {m O(c/n)} in expectation,
      where {m c} is the capacity of the set [s]
@@ -433,6 +436,9 @@ module type MAP = sig
   (**If the map [m] has nonzero cardinality, then [choose m] returns
      a key that is present in the map [m]. This key is chosen at random.
      Otherwise, [choose m] raises [Not_found].
+
+     [choose] invokes [Random.int]. Two successive calls to [choose s] can
+     return different results.
 
      Time complexity: {m O(c)} in the worst case
      and {m O(c/n)} in expectation,
