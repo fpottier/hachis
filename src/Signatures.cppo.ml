@@ -258,9 +258,9 @@ module type SET = sig
   (**[cleanup s] cleans up the internal representation of the set [s], as
      follows. First, it eliminates the tombstones that earlier deletion
      operations may have created in the internal data array. Second, it
-     decreases the capacity of the set [s], if necessary, so as to ensure
-     that {m c} is {m O(n)}, where {m c} is the capacity of the set [s]
-     and {m n} is its cardinality.
+     decreases the capacity of the set [s], if necessary, so as to ensure that
+     the occupancy rate {m n/c} is high enough. When [cleanup] returns, the
+     occupancy rate is guaranteed to be at least 1/4; so {m c} is {m O(n)}.
 
      Time complexity: {m O(c)},
      where {m c} is the capacity of the set [s]. *)
@@ -551,9 +551,9 @@ module type MAP = sig
   (**[cleanup m] cleans up the internal representation of the map [m], as
      follows. First, it eliminates the tombstones that earlier deletion
      operations may have created in the internal data arrays. Second, it
-     decreases the capacity of the map [m], if necessary, so as to ensure
-     that {m c} is {m O(n)}, where {m c} is the capacity of the map [m]
-     and {m n} is its cardinality.
+     decreases the capacity of the map [m], if necessary, so as to ensure that
+     the occupancy rate {m n/c} is high enough. When [cleanup] returns, the
+     occupancy rate is guaranteed to be at least 1/4; so {m c} is {m O(n)}.
 
      Time complexity: {m O(c)},
      where {m c} is the capacity of the map [m]. *)
