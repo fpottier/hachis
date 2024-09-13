@@ -72,6 +72,9 @@ end) = struct
   let cardinal s =
     H.length s
 
+  let is_empty s =
+    cardinal s = 0
+
   let cleanup _s =
     ()
 

@@ -98,6 +98,9 @@ end)
   let cardinal m =
     H.length m
 
+  let is_empty m =
+    cardinal m = 0
+
   let cleanup _m =
     ()
 

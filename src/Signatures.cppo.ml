@@ -165,6 +165,25 @@ module type SET = sig
      Time complexity: {m O(1)}. *)
   val find : set -> element -> element
 
+  (**If the set [s] has nonzero cardinality, then [choose s] returns an
+     element of the set [s]. This element is chosen at random. Otherwise,
+     [choose s] raises [Not_found].
+
+     Time complexity: {m O(c)} in the worst case
+     and {m O(c/n)} in expectation,
+     where {m c} is the capacity of the set [s]
+     and {m n} is its cardinality.
+
+     If the occupancy rate {m n/c} remains above a certain
+     fixed threshold, then this time complexity is {m O(n)}
+     in the worst case and {m O(1)} in expectation.
+
+     If [choose] is used in a loop where elements are removed
+     from the set then it is recommended to monitor the set's
+     occupancy rate and to call [cleanup] so as to ensure that
+     the occupancy rate does not become too low. *)
+  val choose : set -> element
+
   (** {2 Insertion and lookup} *)
 
   (**[find_else_add s x] determines whether some element [y] that is equivalent
@@ -410,6 +429,25 @@ module type MAP = sig
 
   (**[find] is a synonym for [find_value]. *)
   val find : map -> key -> value
+
+  (**If the map [m] has nonzero cardinality, then [choose m] returns
+     a key that is present in the map [m]. This key is chosen at random.
+     Otherwise, [choose m] raises [Not_found].
+
+     Time complexity: {m O(c)} in the worst case
+     and {m O(c/n)} in expectation,
+     where {m c} is the capacity of the map [m]
+     and {m n} is its cardinality.
+
+     If the occupancy rate {m n/c} remains above a certain
+     fixed threshold, then this time complexity is {m O(n)}
+     in the worst case and {m O(1)} in expectation.
+
+     If [choose] is used in a loop where entries are removed
+     from the map then it is recommended to monitor the map's
+     occupancy rate and to call [cleanup] so as to ensure that
+     the occupancy rate does not become too low. *)
+  val choose : map -> key
 
   (** {2 Insertion and lookup} *)
 

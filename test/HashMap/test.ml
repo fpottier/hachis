@@ -88,6 +88,28 @@ let () = dprintf "          \
             List.sort compare !xvs;;
 "
 
+(* We test [choose] by converting it to an emptiness test, as follows.
+   Our wrapper ensures that the element returned by [choose] appears
+   in the set. *)
+
+let is_empty_of_choose mem choose s =
+  try
+    let x = choose s in
+    assert (mem s x);
+    false
+  with Not_found ->
+    true
+
+let () = dprintf "          \
+          let is_empty_of_choose mem choose s =
+            try
+              let x = choose s in
+              assert (mem s x);
+              false
+            with Not_found ->
+              true
+"
+
 (* -------------------------------------------------------------------------- *)
 
 (* Declare the operations. *)
@@ -152,6 +174,10 @@ let () =
   let spec = map ^> list (key *** value) in
   declare "bindings_of_iter iter" spec
     (bindings_of_iter R.iter) (bindings_of_iter C.iter);
+
+  let spec = map ^> bool in
+  declare "is_empty_of_choose mem choose" spec
+    R.is_empty (is_empty_of_choose C.mem C.choose);
 
   ()
 

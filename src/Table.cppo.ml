@@ -508,6 +508,24 @@ SEARCH(find_value_and_remove,
 
 (* -------------------------------------------------------------------------- *)
 
+(* [choose s j] searches the table linearly, from index [j], and returns
+   the first key that it finds. *)
+
+(* The table must be nonempty; that is, its population must be nonzero. *)
+
+let rec choose (s : table) (j : int) : key =
+  assert (is_index s j);
+  let c = K.unsafe_get s.key j in
+  if c == void || c == tomb then
+    (* Skip this slot and continue searching. *)
+    choose s (next s j)
+  else
+    let y = c in
+    (* Return this key. *)
+    y
+
+(* -------------------------------------------------------------------------- *)
+
 (* A template for a search function that remembers passing a tombstone,
    and comes back to this tombstone once the search ends. *)
 
@@ -1038,6 +1056,14 @@ let[@inline] find_value (s : table) (x : key) : value =
   find_value s x (start s x)
 
 #endif
+
+let choose (s : table) : key =
+  if population s = 0 then
+    raise Not_found
+  else
+    (* Pick an index at random, and search from there. *)
+    let j = Random.int (capacity s) in
+    choose s j
 
 let[@inline] length (s : table) (x : key) : int =
   (* No need to validate [x]; this function is private. *)
