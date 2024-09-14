@@ -1244,6 +1244,15 @@ let multiplicity l (h : histogram) : multiplicity =
 let insert l (h : histogram) : histogram =
   IntMap.add l (multiplicity l h + 1) h
 
+let total_length (h : histogram) =
+  IntMap.fold (fun l m accu -> m * l + accu) h 0
+
+let total_multiplicity (h : histogram) =
+  IntMap.fold (fun _ m accu -> m + accu) h 0
+
+let average (h : histogram) : float =
+  float (total_length h) /. float (total_multiplicity h)
+
 let histogram (s : table) : histogram =
   let h = ref IntMap.empty in
   foreach_key (fun x ->
@@ -1253,14 +1262,6 @@ let histogram (s : table) : histogram =
     h := insert l !h
   ) s;
   !h
-
-let average (h : histogram) : float =
-  let num, denum = ref 0, ref 0 in
-  IntMap.iter (fun l m ->
-    num := !num + m * l;
-    denum := !denum + m;
-  ) h;
-  float !num /. float !denum
 
 open Printf
 
