@@ -13,14 +13,53 @@
 open Printf
 
 module B = Common.Benchmark
-let run benchmarks =
-  List.iter B.drive_and_display benchmarks
+module C = Common.Command
 
-let quota =
-  ref "5.0s"
+(* -------------------------------------------------------------------------- *)
+
+(* A fixed random seed. *)
 
 let () =
   Random.init 42
+
+(* -------------------------------------------------------------------------- *)
+
+(* [k] is the desired number of operations in the scenario. *)
+
+let k : unit -> int =
+  C.int "-k" 1000 "set desired number of operations"
+
+(* -------------------------------------------------------------------------- *)
+
+(* [quota] is the time quota alloted to one benchmark. *)
+
+(* let quota : unit -> string = *)
+(*   string "-quota" "5.0s" "set time quota" *)
+
+(* We adapt [quota] based on [k]. *)
+
+let quota () =
+  let k = k() in
+  if k <= 1_000_000 then
+    "2.0s"
+  else if k <= 3_000_000 then
+    "6.0s"
+  else if k <= 10_000_000 then
+    "20.0s"
+  else if k <= 30_000_000 then
+    "60.0s"
+  else if k <= 100_000_000 then
+    "200.0s"
+  else
+    "600.0s"
+
+(* -------------------------------------------------------------------------- *)
+
+(* [candidate] is the candidate implementation whose performance must
+   be measured. *)
+
+let candidate : unit -> string =
+  C.mandatory_string "-candidate" "choose candidate implementation"
 
 (* -------------------------------------------------------------------------- *)
 
@@ -132,12 +171,9 @@ end
    [reset_max_pop] sets the maximum population field to the current
    population. [get_max_pop] reads the maximum population field. *)
 
-(* Furthermore, [is_empty] determines whether the set is empty, and
-   [choose] picks a random element out of a nonempty set. *)
-
 module R = struct
   open Hachis.HashSet.Make(V)(S)
-  type t = { mutable max_pop: int; mutable now: set }
+  type t = { mutable max_pop: int; now: set }
   let create () =
     { max_pop = 0; now = create() }
   let replace s x =
@@ -150,8 +186,6 @@ module R = struct
     mem s.now x
   let cardinal s =
     cardinal s.now
-  let is_empty s =
-    is_empty s.now
   let choose s =
     assert (cardinal s > 0);
     choose s.now
@@ -178,7 +212,6 @@ type key =
 
 type argument =
   | Key of key (* a specific key *)
-  | Random     (* any random key *)
   | Absent     (* any currently absent key *)
   | Present    (* any currently present key *)
 
@@ -220,62 +253,60 @@ let empty : recipe =
 type recipes =
   recipe * recipe
 
-(* [choose_key a s u] randomly chooses an integer value inside or
+(* [choose_key a s] randomly chooses an integer value inside or
    outside of the set [s], depending on [a]. If it must be chosen
-   outside of [s], then it is randomly drawn below [u]. *)
+   outside of [s], then it is drawn randomly out of a very large
+   range. *)
 
-let rec choose_key (a : argument) s u : key =
+let rec choose_key (a : argument) s : key =
   match a with
   | Key x ->
       x
-  | Random ->
-      Random.int u
   | Absent ->
-      let x = Random.int u in
+      let x = Random.int (1 lsl 29) in
       if R.mem s x then
-        choose_key a s u (* retry *)
+        choose_key a s (* retry *)
       else
         x
   | Present ->
-      if R.is_empty s then
+      if R.cardinal s = 0 then
         (* The request cannot be honored. Never mind. *)
-        choose_key Absent s u
+        choose_key Absent s
       else
         R.choose s
 
-(* [choose_instruction s u it] randomly chooses a concrete instruction
+(* [choose_instruction s it] randomly chooses a concrete instruction
    that corresponds to the instruction type [it]. This choice depends
    on the current state [s]. Furthermore, as a result of this choice,
    [s] is updated. *)
 
-let choose_instruction s u (it : itype) : instruction =
+let choose_instruction s (it : itype) : instruction =
   match it with
   | ITReplace a ->
-      let x = choose_key a s u in
-      R.replace s x;
+      let x = choose_key a s in
+      ignore (R.replace s x);
       IReplace x
   | ITAddAbsent a ->
-      assert (a <> Random);
       assert (a <> Present);
-      let x = choose_key a s u in
+      let x = choose_key a s in
       assert (not (R.mem s x));
-      R.replace s x;
+      ignore (R.replace s x);
       IAddAbsent x
   | ITRemove a ->
-      let x = choose_key a s u in
+      let x = choose_key a s in
       R.remove s x;
       IRemove x
   | ITMem a ->
-      let x = choose_key a s u in
+      let x = choose_key a s in
       IMem x
 
-(* [choose_sequence s u r] randomly chooses an instruction sequence
+(* [choose_sequence s r] randomly chooses an instruction sequence
    that obeys the recipe [r]. *)
 
-let choose_sequence s u (r : recipe) : sequence =
+let choose_sequence s (r : recipe) : sequence =
   let n, (it : int -> itype) = r in
   Array.init n @@ fun i ->
-    choose_instruction s u (it i)
+    choose_instruction s (it i)
 
 (* [print_statistics] prints statistics about a sequence of instructions. *)
 
@@ -288,21 +319,21 @@ let print_statistics (seq : sequence) =
     | IRemove    _ -> incr remove
     | IMem       _ -> incr mem
   ) seq;
-  eprintf "This scenario has %d replacements, %d insertions, %d deletions, and %d lookups.\n%!"
+  eprintf "This scenario has %d replacements, %d insertions, %d deletions, %d lookups.\n%!"
     !replace !add !remove !mem
 
-(* [choose_scenario u (r1, r2)] randomly chooses a scenario that begins with
+(* [choose_scenario (r1, r2)] randomly chooses a scenario that begins with
    an empty set as the initial state and obeys the pair of recipes [(r1, r2)].
    The recipe [r1] is used to generate a first sequence of instructions
    (initialization). The recipe [r2] is used to generate a second sequence of
    instructions (use). *)
 
-let choose_scenario u (r1, r2 : recipes) : scenario =
+let choose_scenario (r1, r2 : recipes) : scenario =
   let s = R.create() in
-  let seq1 = choose_sequence s u r1 in
+  let seq1 = choose_sequence s r1 in
   R.reset_max_pop s;
   let initial_pop = R.get_max_pop s in
-  let seq2 = choose_sequence s u r2 in
+  let seq2 = choose_sequence s r2 in
   let max_pop = R.get_max_pop s in
   print_statistics seq2;
   eprintf "The initial population is %d.\n" initial_pop;
@@ -317,66 +348,77 @@ let choose_scenario u (r1, r2 : recipes) : scenario =
 (* [EXECUTE(seq, M)] runs the instruction sequence [seq] on the
    state [s] using the operations provided by the module [M]. *)
 
-#define EXECUTE(seq, M) \
-  for i = 0 to Array.length seq - 1 do \
-    match Array.unsafe_get seq i with \
-    | IReplace x -> \
-        M.replace s x \
-    | IAddAbsent x -> \
-        M.add_absent s x \
-    | IRemove x -> \
-        M.remove s x \
-    | IMem x -> \
-        ignore (M.mem s x) \
+#def EXECUTE(seq, M)
+  for i = 0 to Array.length seq - 1 do
+    match Array.unsafe_get seq i with
+    | IReplace x ->
+        M.replace s x
+    | IAddAbsent x ->
+        M.add_absent s x
+    | IRemove x ->
+        M.remove s x
+    | IMem x ->
+        ignore (M.mem s x)
   done
+#enddef
 
-(* [BENCHMARK(candidate, scenario, M)] expands to a benchmark whose name is
-   [name candidate], obeying [scenario], using the operations provided by
-   the module [M]. *)
+(* [BENCHMARK(M)] expands to a benchmark whose name is [name], obeying
+   [scenario], using the operations provided by the module [M]. *)
 
-#define BENCHMARK(candidate, M) \
-( \
-  let seq1, seq2 = scenario in \
-  let basis = Array.length seq2 \
-  and name = name candidate \
-  and quota = !quota \
-  and run () = \
-    let s = M.create () in \
-    EXECUTE(seq1, M); \
-    fun () -> \
-      EXECUTE(seq2, M) \
-  in \
-  B.benchmark ~name ~quota ~basis ~run \
+#def BENCHMARK(M)
+(
+  let seq1, seq2 = scenario in
+  let basis = Array.length seq2
+  and quota = quota()
+  and run () =
+    let s = M.create () in
+    EXECUTE(seq1, M);
+    fun () ->
+      EXECUTE(seq2, M)
+  in
+  B.benchmark ~name ~quota ~basis ~run
 )
+#enddef
 
-(* [BENCHMARKS(NAME, SCENARIO)] expands to a list of benchmarks which obey
-   [SCENARIO]. [NAME] is the name of the benchmark itself. *)
+(* [CBENCHMARK(c)] expands to a benchmark whose name is [name], obeying
+   [scenario], using the operations provided by candidate [c]. *)
 
-#define BENCHMARKS(NAME, SCENARIO) \
-  let name candidate = \
-    sprintf "%s (n = %d, u = %d) (%s)" NAME n u candidate in \
-  let scenario = SCENARIO in \
-  [ \
-    (* BENCHMARK("Set", Set); *) \
-    (* BENCHMARK("Baby.W.Set", BabyWSet); *) \
-    BENCHMARK("Hashtbl", Hashtbl); \
-    BENCHMARK("HashMap", HashMap); \
-    BENCHMARK("HashSet", HashSet); \
-    (* BENCHMARK("HectorHashSet", HashSet); *) \
-  ]
+#def CBENCHMARK(c)
+(
+  match c with
+  | "Set" ->
+      BENCHMARK(Set)
+  | "Baby.W.Set" ->
+      BENCHMARK(BabyWSet)
+  | "Hashtbl" ->
+      BENCHMARK(Hashtbl)
+  | "HashMap" ->
+      BENCHMARK(HashMap)
+  | "HashSet" ->
+      BENCHMARK(HashSet)
+  (* | "HectorHashSet" -> *)
+  (*     BENCHMARK(HectorHashSet) *)
+  | c ->
+      eprintf "Error: unknown candidate (%s).\n%!" c;
+      exit 1
+)
+#enddef
 
-(* [PROMOTE(NAME, F)] requires [F] to be a function of type [int -> recipes],
-   mapping an integer [n] to a benchmark scenario. [NAME] is the name of this
-   benchmark. The macro produces a new definition of [F] at type
-   [int -> benchmark list]. *)
+(* -------------------------------------------------------------------------- *)
 
-#define PROMOTE(NAME, F) \
-  let F n : B.benchmark list = \
-    eprintf "Scenario: %s\n%!" NAME; \
-    let u = 10 * n in \
-    let recipes = F n in \
-    let scenario = choose_scenario u recipes in \
-    BENCHMARKS(NAME, scenario)
+(* [PROMOTE(NAME, F)] requires [F] to be a function of type [unit -> recipes].
+   [NAME] is the name of this benchmark. The macro produces a new definition
+   of [F] at type [unit -> benchmark]. *)
+
+#def PROMOTE(NAME, F)
+  let F () : B.benchmark =
+    eprintf "Scenario: %s\n%!" NAME;
+    let recipes = F () in
+    let scenario = choose_scenario recipes in
+    let c = candidate() in
+    let name = sprintf "%s (%s)" NAME c in
+    CBENCHMARK(c)
+#enddef
 
 (* -------------------------------------------------------------------------- *)
 
@@ -387,118 +429,81 @@ let either x y =
 
 #define ANY (either Absent Present)
 
-(* A preparation recipe, which constructs a set of cardinal roughly [n], where
-   both insertions and deletions have been performed. *)
+(* A preparation recipe, which constructs a set of cardinal roughly [k],
+   where both insertions and deletions have been performed. *)
 
-let random_state_with_tombstones n : recipe =
-  2*n, fun i ->
-    if i < n then ITReplace Absent
+let initial_state_with_tombstones k : recipe =
+  2*k, fun i ->
+    if i < k then ITReplace Absent
     else either (ITReplace Absent) (ITRemove Present)
 
-(* Consecutive insertions: starting with an empty set, successively insert
-   all integers from [0] to [n-1]. *)
+(* Absent insertions using [replace]: insert [k] absent keys using
+   [replace]. *)
 
-(* In this benchmark, [u] is irrelevant. *)
-
-let consecutive_insertions n : recipes =
+let absent_insertions_replace () : recipes =
+  let k = k() in
   let recipe1 = empty
-  and recipe2 = n, (fun i -> ITReplace (Key (2 * i))) in
+  and recipe2 = k, (fun _ -> ITReplace Absent) in
   recipe1, recipe2
 
-PROMOTE("consecutive insertions", consecutive_insertions)
+PROMOTE("absent insertions (replace)", absent_insertions_replace)
 
-(* Consecutive absent insertions: starting with an empty set, successively
-   insert all integers from [0] to [n-1], using [add_absent]. *)
+(* Absent insertions using [add_absent]: starting with a set of
+   cardinal [k], insert [k] random absent integers using [replace]. *)
 
-let consecutive_absent_insertions n : recipes =
-  let recipe1 = empty
-  and recipe2 = n, (fun i -> ITAddAbsent (Key (2 * i))) in
+let absent_insertions_add_absent () : recipes =
+  let k = k() in
+  let recipe1 = initial_state_with_tombstones k
+  and recipe2 = k, (fun _ -> ITAddAbsent Absent) in
   recipe1, recipe2
 
-PROMOTE("consecutive absent insertions", consecutive_absent_insertions)
+PROMOTE("absent insertions (with tombstones) (add_absent)",
+  absent_insertions_add_absent)
 
-(* Random insertions: starting with an empty set, insert [n] random
-   integers. *)
-
-let random_insertions n : recipes =
-  let recipe1 = empty
-  and recipe2 = n, (fun _ -> ITReplace Random) in
-  recipe1, recipe2
-
-PROMOTE("random insertions", random_insertions)
-
-(* Random absent insertions using [replace]: starting with a set of cardinal
-   [n], insert [n] random absent integers using [replace]. *)
-
-let random_absent_insertions_replace n : recipes =
-  let recipe1 = random_state_with_tombstones n
-  and recipe2 = n, (fun _ -> ITReplace Absent) in
-  recipe1, recipe2
-
-PROMOTE("random absent insertions (with tombstones) (replace)",
-  random_absent_insertions_replace)
-
-(* Random absent insertions using [add_absent]: starting with a set of
-   cardinal [n], insert [n] random absent integers using [replace]. *)
-
-let random_absent_insertions_add_absent n : recipes =
-  let recipe1 = random_state_with_tombstones n
-  and recipe2 = n, (fun _ -> ITAddAbsent Absent) in
-  recipe1, recipe2
-
-PROMOTE("random absent insertions (with tombstones) (add_absent)",
-  random_absent_insertions_add_absent)
-
-(* Random deletions: starting with a set of cardinal [2 * n], remove [n]
+(* Deletions: starting with a set of cardinal [2 * k], remove [k]
    elements in a random order. *)
 
-let random_deletions n : recipes =
-  let recipe1 = 2 * n, (fun _ -> ITReplace Absent)
-  and recipe2 =     n, (fun _ -> ITRemove Present) in
+let deletions () : recipes =
+  let k = k() in
+  let recipe1 = 2 * k, (fun _ -> ITReplace Absent)
+  and recipe2 =     k, (fun _ -> ITRemove Present) in
   recipe1, recipe2
 
-PROMOTE("random deletions", random_deletions)
+PROMOTE("deletions", deletions)
 
-(* Random insertions and deletions: starting with a set of cardinal [n],
-   perform [n] insertions or deletions (half of each). *)
-
-let random_insertions_deletions n : recipes =
-  let recipe1 = n, (fun _ -> ITReplace Absent)
-  and recipe2 = n, (fun _ -> either (ITReplace Absent) (ITRemove Present)) in
-  recipe1, recipe2
-
-PROMOTE("random insertions and deletions", random_insertions_deletions)
-
-(* Random lookups: starting with a set of cardinal [n], perform [n]
-   lookups, including lookups of absent keys and lookups of present
-   keys (half of each). *)
-
-let random_lookups n : recipes =
-  let recipe1 = n, (fun _ -> ITReplace Absent)
-  and recipe2 = n, (fun _ -> ITMem ANY) in
-  recipe1, recipe2
-
-PROMOTE("random lookups", random_lookups)
-
-(* Random lookups (with tombstones): starting with a set of cardinal roughly
-   [n], where insertions and deletions have been performed, perform [n]
-   lookups, including lookups of absent keys and lookups of present keys (half
+(* Lookups: starting with a set of cardinal [k], perform [k] lookups,
+   including lookups of absent keys and lookups of present keys (half
    of each). *)
 
-let random_lookups_tombstones n : recipes =
-  let recipe1 = random_state_with_tombstones n
-  and recipe2 = n, (fun _ -> ITMem ANY) in
+let lookups () : recipes =
+  let k = k() in
+  let recipe1 = k, (fun _ -> ITReplace Absent)
+  and recipe2 = k, (fun _ -> ITMem ANY) in
   recipe1, recipe2
 
-PROMOTE("random lookups (with tombstones)", random_lookups_tombstones)
+PROMOTE("lookups", lookups)
+
+(* Lookups (with tombstones): starting with a set of cardinal roughly
+   [k], where insertions and deletions have been performed, perform
+   [k] lookups, including lookups of absent keys and lookups of
+   present keys (half of each). *)
+
+let lookups_tombstones () : recipes =
+  let k = k() in
+  let recipe1 = initial_state_with_tombstones k
+  and recipe2 = k, (fun _ -> ITMem ANY) in
+  recipe1, recipe2
+
+PROMOTE("lookups (with tombstones)", lookups_tombstones)
 
 (* A bit of everything: random insertions, deletions, and lookups. *)
 
-let everything n : recipes =
+let everything () : recipes =
+  let k = k() in
   let recipe1 = empty
-  and recipe2 = n, fun i ->
+  and recipe2 = k, fun i ->
     let c = Random.int 100 in
-    if i < n/2 then
+    if i < k/2 then
       (* During a first phase, we perform more insertions, and a few
          deletions and lookups. *)
       if c < 80 then ITReplace ANY
@@ -517,22 +522,46 @@ PROMOTE("a bit of everything", everything)
 
 (* -------------------------------------------------------------------------- *)
 
-(* Read the command line. *)
+(* [scheme] is the name of the benchmark that we must run. *)
 
-let int (benchmarks : int -> B.benchmark list) : Arg.spec =
-  Arg.Int (fun n -> run (benchmarks n))
+let scheme : unit -> string =
+  C.mandatory_string "-scheme" "choose benchmark scheme"
+
+let benchmark () : B.benchmark =
+  match scheme() with
+  | "absent-insertions-replace" ->
+      absent_insertions_replace()
+  | "absent-insertions-add-absent" ->
+      absent_insertions_add_absent()
+  | "deletions" ->
+      deletions()
+  | "lookups" ->
+      lookups()
+  | "lookups-tombstones" ->
+      lookups_tombstones()
+  | "everything" ->
+      everything()
+  | s ->
+      eprintf "Error: unknown scheme (%s).\n%!" s;
+      exit 1
+
+(* -------------------------------------------------------------------------- *)
+
+(* [machine] selects machine-readable or human-readable output. *)
+
+let machine : unit -> bool =
+  C.optional_flag "-machine" "request machine-readable output"
+
+(* -------------------------------------------------------------------------- *)
+
+(* Parse. *)
 
 let () =
-  Arg.parse [
-    "--consecutive-insertions", int consecutive_insertions, "";
-    "--consecutive-absent-insertions", int consecutive_absent_insertions, "";
-    "--random-absent-insertions-replace", int random_absent_insertions_replace, "";
-    "--random-absent-insertions-add-absent", int random_absent_insertions_add_absent, "";
-    "--random-deletions", int random_deletions, "";
-    "--random-insertions", int random_insertions, "";
-    "--random-insertions-deletions", int random_insertions_deletions, "";
-    "--random-lookups", int random_lookups, "";
-    "--random-lookups-tombstones", int random_lookups_tombstones, "";
-    "--everything", int everything, "";
-    "--quota", Arg.Set_string quota, "<quota> set time quota (default: 5.0s)";
-  ] (fun _ -> ()) "Invalid usage"
+  C.parse()
+
+(* Act. *)
+
+let () =
+  let drive = if machine() then B.drive_and_print else B.drive_and_display in
+  let benchmark = benchmark() in
+  drive benchmark
