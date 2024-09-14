@@ -165,12 +165,12 @@ module type SET = sig
      Time complexity: {m O(1)}. *)
   val find : set -> element -> element
 
-  (**If the set [s] has nonzero cardinality, then [choose s] returns an
-     element of the set [s]. This element is chosen at random. Otherwise,
-     [choose s] raises [Not_found].
+  (**If the set [s] has nonzero cardinality, then [choose s] returns
+     an element of the set [s]. This element is chosen at random.
+     Otherwise, [choose s] raises [Not_found].
 
-     [choose] invokes [Random.int]. Two successive calls to [choose s] can
-     return different results.
+     [choose] invokes [Random.int]. Two successive calls to [choose s]
+     can return different results.
 
      Time complexity: {m O(c)} in the worst case
      and {m O(c/n)} in expectation,
@@ -181,10 +181,9 @@ module type SET = sig
      threshold, then these bounds can be written under the form
      {m O(n)} in the worst case and {m O(1)} in expectation.
 
-     If [choose] is used in a loop where elements are removed from the
-     set then it is recommended to monitor the set's occupancy rate.
-     If the occupancy rate drops below {m 1/4}, call [cleanup] so as
-     to shrink the table and guarantee a higher occupancy rate. *)
+     If [choose] is used in a loop where elements are repeatedly removed
+     then it is recommended to repeatedly call [tighten] so as to
+     maintain a high occupancy rate. *)
   val choose : set -> element
 
   (** {2 Insertion and lookup} *)
@@ -258,12 +257,24 @@ module type SET = sig
      Time complexity: {m O(1)}. *)
   val reset : set -> unit
 
-  (**[cleanup s] cleans up the internal representation of the set [s], as
-     follows. First, it eliminates the tombstones that earlier deletion
-     operations may have created in the internal data array. Second, it
-     decreases the capacity of the set [s], if necessary, so as to ensure that
-     the occupancy rate {m n/c} is high enough. When [cleanup] returns, the
-     occupancy rate is guaranteed to be at least 1/4; so {m c} is {m O(n)}.
+  (**[tighten s] decreases the capacity of the set [s], if necessary and if
+     possible, so as to ensure that the occupancy rate {m n/c} is high enough.
+     It guarantees either {m c = O(1)}, which means that the capacity is below
+     a certain constant, or {m c = O(n)}, which means that the occupancy rate
+     is above a certain constant.
+
+     Time complexity: {m O(c)},
+     where {m c} is the capacity of the set [s].
+
+     In the case where there is nothing to do, [tighten] has constant cost.
+     Thus, the amortized complexity of a call to [tighten],
+     in a loop where elements are repeatedly removed,
+     is {m O(\log n)}. *)
+  val tighten : set -> unit
+
+  (**[cleanup s] invokes [tighten s] and eliminates the tombstones that
+     earlier deletion operations may have created in the internal data array.
+     This can speed up future insertions and lookups.
 
      Time complexity: {m O(c)},
      where {m c} is the capacity of the set [s]. *)
@@ -437,8 +448,8 @@ module type MAP = sig
      a key that is present in the map [m]. This key is chosen at random.
      Otherwise, [choose m] raises [Not_found].
 
-     [choose] invokes [Random.int]. Two successive calls to [choose s] can
-     return different results.
+     [choose] invokes [Random.int]. Two successive calls to [choose m]
+     can return different results.
 
      Time complexity: {m O(c)} in the worst case
      and {m O(c/n)} in expectation,
@@ -449,10 +460,9 @@ module type MAP = sig
      threshold, then these bounds can be written under the form
      {m O(n)} in the worst case and {m O(1)} in expectation.
 
-     If [choose] is used in a loop where entries are removed from the
-     map then it is recommended to monitor the map's occupancy rate.
-     If the occupancy rate drops below {m 1/4}, call [cleanup] so as
-     to shrink the table and guarantee a higher occupancy rate. *)
+     If [choose] is used in a loop where entries are repeatedly removed
+     then it is recommended to repeatedly call [tighten] so as to
+     maintain a high occupancy rate. *)
   val choose : map -> key
 
   (** {2 Insertion and lookup} *)
@@ -554,12 +564,24 @@ module type MAP = sig
      Time complexity: {m O(1)}. *)
   val reset : map -> unit
 
-  (**[cleanup m] cleans up the internal representation of the map [m], as
-     follows. First, it eliminates the tombstones that earlier deletion
-     operations may have created in the internal data arrays. Second, it
-     decreases the capacity of the map [m], if necessary, so as to ensure that
-     the occupancy rate {m n/c} is high enough. When [cleanup] returns, the
-     occupancy rate is guaranteed to be at least 1/4; so {m c} is {m O(n)}.
+  (**[tighten m] decreases the capacity of the map [m], if necessary and if
+     possible, so as to ensure that the occupancy rate {m n/c} is high enough.
+     It guarantees either {m c = O(1)}, which means that the capacity is below
+     a certain constant, or {m c = O(n)}, which means that the occupancy rate
+     is above a certain constant.
+
+     Time complexity: {m O(c)},
+     where {m c} is the capacity of the set [s].
+
+     In the case where there is nothing to do, [tighten] has constant cost.
+     Thus, the amortized complexity of a call to [tighten],
+     in a loop where entries are repeatedly removed,
+     is {m O(\log n)}. *)
+  val tighten : map -> unit
+
+  (**[cleanup m] invokes [tighten m] and eliminates the tombstones that
+     earlier deletion operations may have created in the internal data array.
+     This can speed up future insertions and lookups.
 
      Time complexity: {m O(c)},
      where {m c} is the capacity of the map [m]. *)

@@ -140,6 +140,9 @@ let () =
   declare "cardinal" spec R.cardinal C.cardinal;
 
   let spec = set ^> unit in
+  declare "tighten" spec R.tighten C.tighten;
+
+  let spec = set ^> unit in
   declare "cleanup" spec R.cleanup C.cleanup;
 
   let spec = set ^> unit in

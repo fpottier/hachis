@@ -160,6 +160,9 @@ let () =
   declare "cardinal" spec R.cardinal C.cardinal;
 
   let spec = map ^> unit in
+  declare "tighten" spec R.tighten C.tighten;
+
+  let spec = map ^> unit in
   declare "cleanup" spec R.cleanup C.cleanup;
 
   let spec = map ^> unit in

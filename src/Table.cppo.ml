@@ -256,14 +256,8 @@ let initial_capacity =
 (* To avoid floating-point computations, we express [max_occupancy] as an
    integer value, which we multiply by 1/128. *)
 
-(* [max_occupancy] must be at least 1/2. This guarantees that, after
-   calling [cleanup], the current occupancy rate is at least 1/4. *)
-
 let max_occupancy =
   105 (* 105/128 = 0.82 *)
-
-let () =
-  assert (max_occupancy >= 64)
 
 (* [crowded] determines whether the table's maximum occupancy rate has
    been exceeded. It is paremeterized by the table's current occupation
@@ -1075,9 +1069,12 @@ let[@inline] length (s : table) (x : key) : int =
   (* No need to validate [x]; this function is private. *)
   length s x (start s x) 0
 
-let[@inline] cleanup (s : table) =
+let[@inline] tighten (s : table) =
+  possibly_shrink s (capacity s)
+
+let cleanup (s : table) =
   (* First, shrink the table, if its occupation is sufficiently low. *)
-  possibly_shrink s (capacity s);
+  tighten s;
   (* Then, if the table contains any tombstones (which can be the case
      only if the table was not shrunk above), scan the [key] array and
      eliminate all tombstones. *)

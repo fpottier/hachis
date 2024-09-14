@@ -75,6 +75,9 @@ end) = struct
   let is_empty s =
     cardinal s = 0
 
+  let tighten _s =
+    ()
+
   let cleanup _s =
     ()
 

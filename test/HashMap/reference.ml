@@ -101,6 +101,9 @@ end)
   let is_empty m =
     cardinal m = 0
 
+  let tighten _m =
+    ()
+
   let cleanup _m =
     ()
 
