@@ -2,8 +2,8 @@ Population:   2000000
 Tombstones:         0
 Capacity  :   4194304
 Occupancy : 0.477
-Average search length: 0.456
-Histogram:
+Average search length (present keys): 0.456
+Search length histogram (present keys):
     1524354 keys have search length   0.
      281072 keys have search length   1.
       97574 keys have search length   2.
@@ -36,7 +36,67 @@ Histogram:
           2 keys have search length  29.
           5 keys have search length  30.
           2 keys have search length  31.
-          1 keys have search length  32.
-          1 keys have search length  33.
-          1 keys have search length  35.
-          1 keys have search length  51.
+          1 key  has  search length  32.
+          1 key  has  search length  33.
+          1 key  has  search length  35.
+          1 key  has  search length  51.
+Average insertion length (absent keys): 1.328
+Insertion length histogram (absent keys):
+    2194304 slots have insertion length   0.
+     832816 slots have insertion length   1.
+     429367 slots have insertion length   2.
+     249573 slots have insertion length   3.
+     155391 slots have insertion length   4.
+     101140 slots have insertion length   5.
+      67863 slots have insertion length   6.
+      46688 slots have insertion length   7.
+      32371 slots have insertion length   8.
+      22781 slots have insertion length   9.
+      16283 slots have insertion length  10.
+      11765 slots have insertion length  11.
+       8624 slots have insertion length  12.
+       6391 slots have insertion length  13.
+       4726 slots have insertion length  14.
+       3472 slots have insertion length  15.
+       2603 slots have insertion length  16.
+       1940 slots have insertion length  17.
+       1466 slots have insertion length  18.
+       1141 slots have insertion length  19.
+        841 slots have insertion length  20.
+        624 slots have insertion length  21.
+        484 slots have insertion length  22.
+        371 slots have insertion length  23.
+        282 slots have insertion length  24.
+        209 slots have insertion length  25.
+        166 slots have insertion length  26.
+        129 slots have insertion length  27.
+        104 slots have insertion length  28.
+         85 slots have insertion length  29.
+         68 slots have insertion length  30.
+         52 slots have insertion length  31.
+         38 slots have insertion length  32.
+         28 slots have insertion length  33.
+         21 slots have insertion length  34.
+         15 slots have insertion length  35.
+         11 slots have insertion length  36.
+         11 slots have insertion length  37.
+          8 slots have insertion length  38.
+          8 slots have insertion length  39.
+          7 slots have insertion length  40.
+          6 slots have insertion length  41.
+          4 slots have insertion length  42.
+          4 slots have insertion length  43.
+          3 slots have insertion length  44.
+          3 slots have insertion length  45.
+          2 slots have insertion length  46.
+          2 slots have insertion length  47.
+          2 slots have insertion length  48.
+          2 slots have insertion length  49.
+          2 slots have insertion length  50.
+          1 slot  has  insertion length  51.
+          1 slot  has  insertion length  52.
+          1 slot  has  insertion length  53.
+          1 slot  has  insertion length  54.
+          1 slot  has  insertion length  55.
+          1 slot  has  insertion length  56.
+          1 slot  has  insertion length  57.

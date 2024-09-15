@@ -307,33 +307,56 @@ module type SET = sig
      Time complexity: {m O(1)}. *)
   val occupation : set -> int
 
-  (**We say that a key [x] requires a search of length [k] in the set [s]
-     if the function call [mem s x] requires reading [k+1] successive
-     slots in the internal data array of the set [s]. In the best case, an
-     element requires a search of length 0. If there are collisions, then
-     some elements will require a search of length more than 0.
+  (**Assume that the element [x] is present in the set [s]. We say that this
+     element has {i search length} {m k} if the function call [mem s x]
+     requires reading {m k+1} successive slots in the internal data array of
+     the set [s]. In the best case, an element has search length 0. If there
+     are collisions, then some elements have search length greater than 0.
 
-     A search length histogram for the set [s] is a finite association map
-     that maps a natural integer [k] to the number of elements that
-     require a search of length [k] in the set [s]. *)
+     A present-key histogram for the set [s] is a finite association map that
+     maps a natural integer {m k} to the number of elements of the set [s]
+     that have search length {m k}. The cardinality of this histogram is
+     {m n}, the cardinality of the set [s].
+
+     The average search length should be a good a predictor of the cost of
+     searching for an element that is present in the set.
+
+     We say that the slot at index [i] in an internal data array has insertion
+     length {m k} if finding the first empty slot, beginning at index [i],
+     requires reading {m k+1} successive slots. An empty slot has insertion
+     length 0. A nonempty slot has insertion length greater than 0.
+
+     An absent-key histogram for the set [s] is a finite association map that
+     maps a natural integer {m k} to the number of slots in the data array of
+     the set [s] that have insertion length {m k}. The cardinality of this
+     histogram is {m c}, the capacity of the set [s].
+
+     The average insertion length should be a good a predictor of the cost of
+     inserting an element that is not present in the set. *)
   type histogram = int Map.Make(Int).t
 
-  (**[histogram s] returns a histogram of the search lengths for the
-     set [s].
+  (**[present_key_histogram s] returns a present-key histogram for the set [s].
 
      Time complexity: {m O(c \log c)},
      where {m c} is the capacity of the set [s]. *)
-  val histogram : set -> histogram
+  val present_key_histogram : set -> histogram
 
-  (**[average h] returns the average search length in the histogram [h].
+  (**[absent_key_histogram s] returns an absent-key histogram for the set [s].
+
+     Time complexity: {m O(c \log c)},
+     where {m c} is the capacity of the set [s]. *)
+  val absent_key_histogram : set -> histogram
+
+  (**[average h] returns the average value of the histogram [h].
 
      Time complexity: {m O(n)},
-     where {m n} is the cardinality of the set [s]. *)
+     where {m n} is the cardinality of the histogram [h]. *)
   val average : histogram -> float
 
-  (**[statistics s] returns a string of information that includes the
-     cardinality, capacity, occupancy rate, average search length,
-     and search length histogram of the set [s].
+  (**[statistics s] returns a string of information about the set [s]. This
+     information includes the cardinality, capacity, occupancy rate, average
+     search length, present-key histogram, average insertion length, and
+     absent-key histogram.
 
      Time complexity: {m O(c \log c)},
      where {m c} is the capacity of the set [s]. *)
@@ -613,15 +636,32 @@ module type MAP = sig
      Time complexity: {m O(1)}. *)
   val occupation : map -> int
 
-  (**We say that a key [x] requires a search of length [k] in the map [m]
-     if the function call [mem m x] requires reading [k+1] successive
-     slots in the internal data array of the map [m]. In the best case,
-     a key requires a search of length 0. If there are collisions, then
-     some keys will require a search of length more than 0.
+  (**Assume that the key [x] is present in the map [m]. We say that this key
+     has {i search length} {m k} if the function call [mem m x] requires
+     reading {m k+1} successive slots in the internal data array of the map
+     [m]. In the best case, a key has search length 0. If there are
+     collisions, then some keys have search length greater than 0.
 
-     A search length histogram for the map [m] is a finite association map
-     that maps a natural integer [k] to the number of keys that require a
-     search of length [k] in the map [m]. *)
+     A present-key histogram for the map [m] is a finite association map that
+     maps a natural integer {m k} to the number in keys of the map [m] that
+     have search length {m k}. The cardinality of this histogram is {m n}, the
+     cardinality of the map [m].
+
+     The average search length should be a good a predictor of the cost of
+     searching for a key that is present in the map.
+
+     We say that the slot at index [i] in an internal data array has insertion
+     length {m k} if finding the first empty slot, beginning at index [i],
+     requires reading {m k+1} successive slots. An empty slot has insertion
+     length 0. A nonempty slot has insertion length greater than 0.
+
+     An absent-key histogram for the map [m] is a finite association map that
+     maps a natural integer {m k} to the number of slots in the data array of
+     the map [m] that have insertion length {m k}. The cardinality of this
+     histogram is {m c}, the capacity of the map [m].
+
+     The average insertion length should be a good a predictor of the cost of
+     inserting a key that is not present in the map. *)
   type histogram = int Map.Make(Int).t
 
   (**[histogram m] returns a histogram of the search lengths for the map
@@ -629,7 +669,9 @@ module type MAP = sig
 
      Time complexity: {m O(c\log c)},
      where {m c} is the capacity of the map [m]. *)
-  val histogram : map -> histogram
+  val present_key_histogram : map -> histogram
+
+  val absent_key_histogram : map -> histogram
 
   (**[average h] returns the average search length in the histogram [h].
 

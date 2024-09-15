@@ -1253,7 +1253,7 @@ let total_multiplicity (h : histogram) =
 let average (h : histogram) : float =
   float (total_length h) /. float (total_multiplicity h)
 
-let histogram (s : table) : histogram =
+let present_key_histogram (s : table) : histogram =
   let h = ref IntMap.empty in
   foreach_key (fun x ->
     (* Measure the length [l] of the search for [x]. *)
@@ -1261,9 +1261,53 @@ let histogram (s : table) : histogram =
     (* Increment the multiplicity of [l] in the histogram. *)
     h := insert l !h
   ) s;
+  assert (total_multiplicity !h = population s);
+  !h
+
+let absent_key_histogram (s : table) : histogram =
+  let h = ref IntMap.empty in
+  (* Start a void slot; this is our [origin] slot. *)
+  let origin = find_void_slot s in
+  (* [record_void j] records in the histogram [h] the fact that slot [j] has
+     insertion length 0, then moves on to the next slot. *)
+  let rec record_void j =
+    assert (is_index s j);
+    assert (K.unsafe_get s.key j == void);
+    h := insert 0 !h;
+    scan_void (next s j)
+  (* [scan_void j] scans the slot at index [j], with the knowledge that the
+     previous slot was void. *)
+  and scan_void j =
+    assert (is_index s j);
+    if origin <> j then
+      let c = K.unsafe_get s.key j in
+      if c == void then
+        record_void j
+      else
+        scan_occupied 1 (next s j)
+  (* [scan_occupied count j] scans the slot at index [j], with the knowledge
+     that the previous [count] slots were occupied. *)
+  and scan_occupied count j =
+    assert (is_index s j);
+    let c = K.unsafe_get s.key j in
+    if c != void then
+      scan_occupied (count + 1) (next s j)
+    else
+      (* We have just identified a run of [count] consecutive occupied slots.
+         For each of them, add an entry to the histogram. The corresponding
+         lengths are 1, 2, ..., [count]. *)
+      let () = for l = 1 to count do h := insert l !h done in
+      if origin <> j then
+        record_void j
+  in
+  record_void origin;
+  assert (total_multiplicity !h = capacity s);
   !h
 
 open Printf
+
+let have c =
+  if c > 1 then "s have" else "  has "
 
 let statistics (s : table) : string =
   let b = Buffer.create 128 in
@@ -1271,13 +1315,21 @@ let statistics (s : table) : string =
   bprintf b "Tombstones: %9d\n" (occupation s - population s);
   bprintf b "Capacity  : %9d\n" (capacity s);
   bprintf b "Occupancy : %.3f\n" (occupancy s);
-  let h = histogram s in
-  bprintf b "Average search length: %.3f\n" (average h);
-  bprintf b "Histogram:\n";
+  let h = present_key_histogram s in
+  bprintf b "Average search length (present keys): %.3f\n" (average h);
+  bprintf b "Search length histogram (present keys):\n";
   IntMap.iter (fun l m ->
     bprintf b
-      "  %9d keys have search length %3d.\n"
-      m l
+      "  %9d key%s search length %3d.\n"
+      m (have m) l
+  ) h;
+  let h = absent_key_histogram s in
+  bprintf b "Average insertion length (absent keys): %.3f\n" (average h);
+  bprintf b "Insertion length histogram (absent keys):\n";
+  IntMap.iter (fun l m ->
+    bprintf b
+      "  %9d slot%s insertion length %3d.\n"
+      m (have m) l
   ) h;
   Buffer.contents b
 
