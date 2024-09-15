@@ -854,15 +854,27 @@ let resize (s : table) (new_capacity : capacity) =
 
 (* -------------------------------------------------------------------------- *)
 
+(* [find_void_slot] searches for a void slot (there always exists one) and
+   returns its index. It is used by [elim] and by one of the histogram
+   construction functions. *)
+
+let rec find_void_slot (s : table) (j : index) : index =
+  assert (is_index s j);
+  let c = K.unsafe_get s.key j in
+  if c == void then j else find_void_slot s (next s j)
+
+let[@inline] find_void_slot (s : table) : index =
+  (* We start at index 0, but could start anywhere. *)
+  find_void_slot s 0
+
+(* -------------------------------------------------------------------------- *)
+
 (* Eliminating tombstones, in place, in the [key] array. *)
 
 (* Roughly speaking, all tombstones are turned into [void] slots, and all
    keys that used to follow a tombstone must be relocated. *)
 
-(* We use a state machine with 3 states, as follows:
-
-   - In state [init], we have not yet encountered a void slot; we skip all
-     keys and tombstones until we encounter one.
+(* We use a state machine with two states, as follows:
 
    - In state [void], we have encountered a void slot, followed with zero,
      one, or more keys. These keys can remain where they are; we skip them.
@@ -871,23 +883,12 @@ let resize (s : table) (new_capacity : capacity) =
      which we have changed into void slots. We have then encountered zero,
      one, or more keys, which we have relocated.
 
-   When we transition out of the initial state, we record the current index;
-   this is the [origin] index. In every state other than [init], if we
-   detect that we have reached [origin] again, after scanning the entire
-   circular array, then we stop. *)
+   In the beginning, we look for an empty slot and record its index: this
+   is the [origin] index. Then, we execute the state machine, beginning in
+   state [void]. Once we reach [origin] again, after scanning the entire
+   circular array, we stop. *)
 
-let rec elim_init (s : table) (j : index) : unit =
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then
-    (* Switch from state [init] to state [void]. *)
-    let origin = j in
-    elim_void s origin (next s j)
-  else
-    (* Continue in state [init]. *)
-    elim_init s (next s j)
-
-and elim_void (s : table) (origin : index) (j : index) : unit =
+let rec elim_void (s : table) (origin : index) (j : index) : unit =
   assert (is_index s origin);
   assert (K.unsafe_get s.key origin == void);
   assert (is_index s j);
@@ -959,10 +960,9 @@ and elim_tomb (s : table) (origin : index) (j : index) : unit =
    keys. *)
 
 let[@inline] elim (s : table) =
-  (* Execute the state machine. We start at index 0, but one could start
-     anywhere. *)
-  let j = 0 in
-  elim_init s j;
+  (* Execute the state machine. *)
+  let origin = find_void_slot s in
+  elim_void s origin (next s origin);
   (* All tombstones are now gone. *)
   s.occupation <- s.population
 
