@@ -37,14 +37,6 @@
 
 ## Cleanup
 
-* The amortized cost of insertion is {m O(\log n)}.
-
-* Check that the weight of the present-search histogram is n.
-  Document the fact that it is a histogram of the search lengths
-  for the keys that are present in the set.
-
-* Compute an absent-search histogram whose weight is c.
-
 * Benchmark: understand why "a bit of everything" does not give us a large
   edge.
 
