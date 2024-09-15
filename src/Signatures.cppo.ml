@@ -121,7 +121,10 @@ module type SET = sig
 
      If necessary, the capacity of the set [s] is increased.
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the set must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val add_if_absent : set -> element -> bool
 
   (**[add_absent s x] inserts the element [x] into the set [s]. No
@@ -134,7 +137,10 @@ module type SET = sig
 
      If necessary, the capacity of the set [s] is increased.
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the set must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val add_absent : set -> element -> unit
 
   (**If some element that is equivalent to [x] is present in the set [s],
@@ -147,7 +153,10 @@ module type SET = sig
 
      If necessary, the capacity of the set [s] is increased.
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the set must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val replace : set -> element -> bool
 
   (** {2 Lookup} *)
@@ -195,7 +204,10 @@ module type SET = sig
      [find_else_add s x] is equivalent to
      [try find s x with Not_found -> add_absent s x; raise Not_found].
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the set must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val find_else_add : set -> element -> element
 
   (** {2 Deletion} *)
@@ -412,7 +424,10 @@ module type MAP = sig
 
      If necessary, the capacity of the map [m] is increased.
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the map must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val add_if_absent : map -> key -> value -> bool
 
   (**[add_absent m x v] inserts the key [x] with value [v] into the map
@@ -425,7 +440,10 @@ module type MAP = sig
 
      If necessary, the capacity of the map [m] is increased.
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the map must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val add_absent : map -> key -> value -> unit
 
   (**If some key that is equivalent to [x] is present in the map [m], then
@@ -439,7 +457,10 @@ module type MAP = sig
 
      If necessary, the capacity of the map [m] is increased.
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the map must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val replace : map -> key -> value -> bool
 
   (** {2 Lookup} *)
@@ -498,7 +519,10 @@ module type MAP = sig
      [find_key_else_add m x v] is equivalent to
      [try find_key m x v with Not_found -> add_absent m x v; raise Not_found].
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the map must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val find_key_else_add : map -> key -> value -> key
 
   (**[find_value_else_add m x] determines whether some key [y] that is
@@ -509,7 +533,10 @@ module type MAP = sig
      [find_value_else_add m x v] is equivalent to
      [try find_value m x v with Not_found -> add_absent m x v; raise Not_found].
 
-     Time complexity: {m O(1)}. *)
+     Time complexity: the cost of an insertion operation is often {m O(1)};
+     however, if the capacity of the map must be increased, it is {m O(n)}.
+     Because this costly event is infrequent, the amortized complexity of
+     insertion is {m O(\log n)}. *)
   val find_value_else_add : map -> key -> value -> value
 
   (** {2 Deletion} *)
