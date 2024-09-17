@@ -6,6 +6,10 @@
 all:
 	@ dune build --profile=release
 
+.PHONY: clean
+clean:
+	@ git clean -fdX
+
 # The executable (built on the fly by dune).
 
 MAIN := \
@@ -27,6 +31,7 @@ K := 2000000
 SCHEMES := \
   absent-insertions-replace \
   absent-insertions-add-absent \
+  absent-insertions-add-if-absent \
   deletions \
   lookups \
   lookups-tombstones \
@@ -76,3 +81,24 @@ plot:
 	      -output $$S.pdf \
 	    ; \
 	  done
+
+# ------------------------------------------------------------------------------
+
+# Comparing [replace], [add_absent], and [add_if_absent].
+
+.PHONY: compare-insertion-functions
+compare-insertion-functions: all
+	@ prun \
+	      -runs 1 \
+	      -output comparing-insertion-functions.out \
+	      -prog "$(EXE) -machine" \
+	      -candidate HashSet \
+	      -scheme absent-insertions-add-absent,absent-insertions-replace,absent-insertions-add-if-absent \
+	      -k 1$(KILO),10$(KILO),100$(KILO),1$(MEGA),3$(MEGA),10$(MEGA),30$(MEGA)
+	@ pplot scatter \
+	      --yzero --xlog -x k -y nanos \
+	      -legend-pos topleft \
+	      -series scheme \
+	      -input comparing-insertion-functions.out \
+	      -output comparing-insertion-functions.pdf
+	@ open comparing-insertion-functions.pdf

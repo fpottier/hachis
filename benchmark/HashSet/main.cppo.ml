@@ -74,6 +74,7 @@ module type API = sig
   val create : unit -> set
   val replace : set -> element -> unit
   val add_absent : set -> element -> unit
+  val add_if_absent : set -> element -> unit
   val remove : set -> element -> unit
   val mem : set -> element -> bool
 end
@@ -103,6 +104,7 @@ module S = struct type t = int let void = (-1) let tomb = (-2) end
 module HashSet : API = struct
   include Hachis.HashSet.Make(V)(S)
   let[@inline] replace s x = ignore (replace s x)
+  let[@inline] add_if_absent s x = ignore (add_if_absent s x)
 end
 
 (* Instantiate [Hachis.HashSet] using [Hector.IntArray]. *)
@@ -120,6 +122,7 @@ module HashMap : API = struct
   type set = map
   let[@inline] replace s x = ignore (replace s x x)
   let[@inline] add_absent s x = add_absent s x x
+  let[@inline] add_if_absent s x = ignore (add_if_absent s x x)
 end
 
 (* Instantiate [Stdlib.Hashtbl] so as to respect [API]. *)
@@ -133,6 +136,7 @@ module Hashtbl : API = struct
   let[@inline] create () = create 128
   let[@inline] replace s x = replace s x ()
   and[@inline] add_absent s x = add s x ()
+  let[@inline] add_if_absent s x = if not (mem s x) then replace s x
 end
 
 (* Instantiate [Stdlib.Set] so as to respect [API]. *)
@@ -148,6 +152,7 @@ module Set : API = struct
   let add_absent = replace
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
+  let[@inline] add_if_absent s x = if not (mem s x) then replace s x
 end
 
 (* Instantiate [Baby.W.Set] so as to respect [API]. *)
@@ -163,6 +168,7 @@ module BabyWSet : API = struct
   let add_absent = replace
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
+  let[@inline] add_if_absent s x = if not (mem s x) then replace s x
 end
 
 (* We use the module [R] in the generation of benchmark scenarios. *)
@@ -180,6 +186,8 @@ module R = struct
     ignore (replace s.now x);
     let n = cardinal s.now in
     if s.max_pop < n then s.max_pop <- n
+  let add_if_absent s x =
+    if not (mem s.now x) then replace s x
   let remove s x =
     remove s.now x
   let mem s x =
@@ -218,6 +226,7 @@ type argument =
 type itype =
   | ITReplace of argument
   | ITAddAbsent of argument
+  | ITAddIfAbsent of argument
   | ITRemove of argument
   | ITMem of argument
 
@@ -226,6 +235,7 @@ type itype =
 type instruction =
   | IReplace of key
   | IAddAbsent of key
+  | IAddIfAbsent of key
   | IRemove of key
   | IMem of key
 
@@ -289,9 +299,16 @@ let choose_instruction s (it : itype) : instruction =
   | ITAddAbsent a ->
       assert (a <> Present);
       let x = choose_key a s in
-      assert (not (R.mem s x));
+      if R.mem s x then begin
+        eprintf "Key %d is already present: cannot use add_absent.\n%!" x;
+        assert false
+      end;
       ignore (R.replace s x);
       IAddAbsent x
+  | ITAddIfAbsent a ->
+      let x = choose_key a s in
+      ignore (R.add_if_absent s x);
+      IAddIfAbsent x
   | ITRemove a ->
       let x = choose_key a s in
       R.remove s x;
@@ -311,16 +328,17 @@ let choose_sequence s (r : recipe) : sequence =
 (* [print_statistics] prints statistics about a sequence of instructions. *)
 
 let print_statistics (seq : sequence) =
-  let replace, add, remove, mem = ref 0, ref 0, ref 0, ref 0 in
+  let insert, remove, mem = ref 0, ref 0, ref 0 in
   Array.iter (fun instruction ->
     match instruction with
-    | IReplace   _ -> incr replace
-    | IAddAbsent _ -> incr add
-    | IRemove    _ -> incr remove
-    | IMem       _ -> incr mem
+    | IReplace   _   -> incr insert
+    | IAddAbsent _   -> incr insert
+    | IAddIfAbsent _ -> incr insert
+    | IRemove    _   -> incr remove
+    | IMem       _   -> incr mem
   ) seq;
-  eprintf "This scenario has %d replacements, %d insertions, %d deletions, %d lookups.\n%!"
-    !replace !add !remove !mem
+  eprintf "This scenario has %d insertions, %d deletions, %d lookups.\n%!"
+    !insert !remove !mem
 
 (* [choose_scenario (r1, r2)] randomly chooses a scenario that begins with
    an empty set as the initial state and obeys the pair of recipes [(r1, r2)].
@@ -355,6 +373,8 @@ let choose_scenario (r1, r2 : recipes) : scenario =
         M.replace s x
     | IAddAbsent x ->
         M.add_absent s x
+    | IAddIfAbsent x ->
+        M.add_if_absent s x
     | IRemove x ->
         M.remove s x
     | IMem x ->
@@ -437,28 +457,35 @@ let initial_state_with_tombstones k : recipe =
     if i < k then ITReplace Absent
     else either (ITReplace Absent) (ITRemove Present)
 
-(* Absent insertions using [replace]: insert [k] absent keys using
-   [replace]. *)
+(* Insert [k] absent keys using [replace]. *)
 
 let absent_insertions_replace () : recipes =
   let k = k() in
   let recipe1 = empty
-  and recipe2 = k, (fun _ -> ITReplace Absent) in
+  and recipe2 = k, (fun i -> ITReplace (Key (2 * (i + 1)))) in
   recipe1, recipe2
 
 PROMOTE("absent insertions (replace)", absent_insertions_replace)
 
-(* Absent insertions using [add_absent]: starting with a set of
-   cardinal [k], insert [k] random absent integers using [replace]. *)
+(* Insert [k] absent keys using [add_absent]. *)
 
 let absent_insertions_add_absent () : recipes =
   let k = k() in
-  let recipe1 = initial_state_with_tombstones k
-  and recipe2 = k, (fun _ -> ITAddAbsent Absent) in
+  let recipe1 = empty
+  and recipe2 = k, (fun i -> ITAddAbsent (Key (2 * (i + 1)))) in
   recipe1, recipe2
 
-PROMOTE("absent insertions (with tombstones) (add_absent)",
-  absent_insertions_add_absent)
+PROMOTE("absent insertions (add_absent)", absent_insertions_add_absent)
+
+(* Insert [k] absent keys using [add_if_absent]. *)
+
+let absent_insertions_add_if_absent () : recipes =
+  let k = k() in
+  let recipe1 = empty
+  and recipe2 = k, (fun i -> ITAddIfAbsent (Key (2 * (i + 1)))) in
+  recipe1, recipe2
+
+PROMOTE("absent insertions (add_if_absent)", absent_insertions_add_if_absent)
 
 (* Deletions: starting with a set of cardinal [2 * k], remove [k]
    elements in a random order. *)
@@ -533,6 +560,8 @@ let benchmark () : B.benchmark =
       absent_insertions_replace()
   | "absent-insertions-add-absent" ->
       absent_insertions_add_absent()
+  | "absent-insertions-add-if-absent" ->
+      absent_insertions_add_if_absent()
   | "deletions" ->
       deletions()
   | "lookups" ->
