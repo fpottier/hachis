@@ -449,10 +449,11 @@ let either x y =
 
 #define ANY (either Absent Present)
 
-(* A preparation recipe, which constructs a set of cardinal roughly [k],
-   where both insertions and deletions have been performed. *)
+(* [tombstones k] constructs a set of cardinal roughly [k] where both
+   insertions and deletions have been performed. Thus, this set contains
+   tombstones. *)
 
-let initial_state_with_tombstones k : recipe =
+let tombstones k : recipe =
   2*k, fun i ->
     if i < k then ITReplace Absent
     else either (ITReplace Absent) (ITRemove Present)
@@ -517,7 +518,7 @@ PROMOTE("lookups", lookups)
 
 let lookups_tombstones () : recipes =
   let k = k() in
-  let recipe1 = initial_state_with_tombstones k
+  let recipe1 = tombstones k
   and recipe2 = k, (fun _ -> ITMem ANY) in
   recipe1, recipe2
 
