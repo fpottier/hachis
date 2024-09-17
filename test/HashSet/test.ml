@@ -59,12 +59,6 @@ let set =
 let element =
   semi_open_interval 0 32
 
-(* The absence of a key in a set
-   is a precondition of [add_absent]. *)
-
-let absent (s : R.set) (x : int) : bool =
-  not (R.mem s x)
-
 (* We test [iter] by converting it to an [elements] function.
    This function must produce a sorted list, because the order
    in which elements are produced is unspecified. *)
@@ -120,9 +114,6 @@ let () =
 
   let spec = set ^> element ^> bool in
   declare "add_if_absent" spec R.add_if_absent C.add_if_absent;
-
-  let spec = set ^>> fun s -> (absent s) % element ^> unit in
-  declare "add_absent" spec R.add_absent C.add_absent;
 
   let spec = set ^> element ^> bool in
   declare "replace" spec R.replace C.replace;

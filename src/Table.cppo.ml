@@ -742,38 +742,6 @@ SEARCH2(replace,
 
 (* -------------------------------------------------------------------------- *)
 
-(* Insertion: [add_absent]. *)
-
-(* A special case of [add_if_absent], where we assume that [x] is not in the
-   table. *)
-
-(* [x] is always inserted. No Boolean result is returned. *)
-
-(* The fields [s.population] and [s.occupation] are updated. *)
-
-let rec add_absent (s : table) (x : key) ov (j : int) =
-  assert (is_not_sentinel x);
-  assert (is_index s j);
-  let c = K.unsafe_get s.key j in
-  if c == void then begin
-    s.occupation <- s.occupation + 1;
-    POSSIBLY_ALLOCATE_VALUE_ARRAY;
-    WRITE_AND_POPULATE
-  end
-  else if c == tomb then
-    (* Because [x] is not in the table, it can be safely inserted here,
-       by overwriting this tombstone. *)
-    (WRITE_AND_POPULATE)
-    (* [s.occupation] is unchanged. *)
-  else
-    let y = c in
-    (* [x] is not in the table. *)
-    assert (not (equiv x y));
-    (* Skip this slot and continue searching. *)
-    add_absent s x ov (next s j)
-
-(* -------------------------------------------------------------------------- *)
-
 (* [add_absent_no_updates] is a special case of [add_if_absent], where:
 
    + we assume that [x] is not in the table;
@@ -1086,11 +1054,6 @@ let add_if_absent (s : table) (x : key) ov : bool =
   let was_added = add_if_absent s x ov (start s x) in
   if was_added then possibly_grow s;
   was_added
-
-let add_absent (s : table) (x : key) ov =
-  validate x;
-  add_absent s x ov (start s x);
-  possibly_grow s
 
 let find_key_else_add (s : table) (x : key) ov =
   validate x;

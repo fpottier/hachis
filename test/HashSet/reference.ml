@@ -43,11 +43,6 @@ end) = struct
       H.add s x x;
     was_absent
 
-  let add_absent s x =
-    let was_present = H.mem s x in
-    assert (not was_present);
-    H.add s x x
-
   let replace s x =
     let was_present = H.mem s x in
     let was_absent = not was_present in
@@ -58,7 +53,7 @@ end) = struct
     try
       find s x
     with Not_found ->
-      add_absent s x;
+      ignore (add_if_absent s x);
       raise Not_found
 
   let remove =

@@ -64,12 +64,6 @@ let key =
 let value =
   semi_open_interval 0 32
 
-(* The absence of a key in a set
-   is a precondition of [add_absent]. *)
-
-let absent (s : R.map) (x : int) : bool =
-  not (R.mem s x)
-
 (* We test [iter] by converting it to a [bindings] function.
    This function must produce a sorted list, because the order
    in which bindings are produced is unspecified. *)
@@ -130,9 +124,6 @@ let () =
 
   let spec = map ^> key ^> value ^> bool in
   declare "add_if_absent" spec R.add_if_absent C.add_if_absent;
-
-  let spec = map ^>> fun s -> (absent s) % key ^> value ^> unit in
-  declare "add_absent" spec R.add_absent C.add_absent;
 
   let spec = map ^> key ^> value ^> bool in
   declare "replace" spec R.replace C.replace;

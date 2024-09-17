@@ -35,7 +35,7 @@ let n =
 let () =
   let s = H.create() in
   for x = 1 to n do
-    H.add_absent s x
+    ignore (H.add_if_absent s x)
   done;
   print_string (H.show V.show s);
   flush stdout

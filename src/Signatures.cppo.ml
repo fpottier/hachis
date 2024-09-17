@@ -127,22 +127,6 @@ module type SET = sig
      insertion is {m O(\log n)}. *)
   val add_if_absent : set -> element -> bool
 
-  (**[add_absent s x] inserts the element [x] into the set [s]. No
-     result is returned. {b The element [x], or an element [y] that is
-     equivalent to [x], must not already be a member of [s]}: otherwise,
-     the data structure would become inconsistent. It is recommended to
-     guard this operation with [assert (not (mem s x))]. This allows the
-     code to be both safe (when runtime assertions are enabled) and
-     efficient (when runtime assertions are disabled).
-
-     If necessary, the capacity of the set [s] is increased.
-
-     Time complexity: the cost of an insertion operation is often {m O(1)};
-     however, if the capacity of the set must be increased, it is {m O(n)}.
-     Because this costly event is infrequent, the amortized complexity of
-     insertion is {m O(\log n)}. *)
-  val add_absent : set -> element -> unit
-
   (**If some element that is equivalent to [x] is present in the set [s],
      then [replace s x] removes this pre-existing element, inserts [x]
      into the set [s], and returns [false]. Otherwise, [replace s x]
@@ -202,7 +186,7 @@ module type SET = sig
      element [x] is inserted into the set [s], and [Not_found] is raised.
 
      [find_else_add s x] is equivalent to
-     [try find s x with Not_found -> add_absent s x; raise Not_found].
+     [try find s x with Not_found -> ignore (add_if_absent s x); raise Not_found].
 
      Time complexity: the cost of an insertion operation is often {m O(1)};
      however, if the capacity of the set must be increased, it is {m O(n)}.
@@ -430,22 +414,6 @@ module type MAP = sig
      insertion is {m O(\log n)}. *)
   val add_if_absent : map -> key -> value -> bool
 
-  (**[add_absent m x v] inserts the key [x] with value [v] into the map
-     [m]. No result is returned. {b The key [x], or a key [y] that is
-     equivalent to [x], must not already be present in [m]}: otherwise,
-     the data structure would become inconsistent. It is recommended to
-     guard this operation with [assert (not (mem m x))]. This allows the
-     code to be both safe (when runtime assertions are enabled) and
-     efficient (when runtime assertions are disabled).
-
-     If necessary, the capacity of the map [m] is increased.
-
-     Time complexity: the cost of an insertion operation is often {m O(1)};
-     however, if the capacity of the map must be increased, it is {m O(n)}.
-     Because this costly event is infrequent, the amortized complexity of
-     insertion is {m O(\log n)}. *)
-  val add_absent : map -> key -> value -> unit
-
   (**If some key that is equivalent to [x] is present in the map [m], then
      [replace m x v] removes this pre-existing key and its value, inserts
      the key [x] with value [v] into the map [m], and returns [false].
@@ -517,7 +485,7 @@ module type MAP = sig
      and [Not_found] is raised.
 
      [find_key_else_add m x v] is equivalent to
-     [try find_key m x v with Not_found -> add_absent m x v; raise Not_found].
+     [try find_key m x v with Not_found -> ignore (add_if_absent m x v); raise Not_found].
 
      Time complexity: the cost of an insertion operation is often {m O(1)};
      however, if the capacity of the map must be increased, it is {m O(n)}.
@@ -531,7 +499,7 @@ module type MAP = sig
      inserted into the map [m], and [Not_found] is raised.
 
      [find_value_else_add m x v] is equivalent to
-     [try find_value m x v with Not_found -> add_absent m x v; raise Not_found].
+     [try find_value m x v with Not_found -> ignore (add_if_absent m x v); raise Not_found].
 
      Time complexity: the cost of an insertion operation is often {m O(1)};
      however, if the capacity of the map must be increased, it is {m O(n)}.

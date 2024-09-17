@@ -73,7 +73,6 @@ module type API = sig
   type set
   val create : unit -> set
   val replace : set -> element -> unit
-  val add_absent : set -> element -> unit
   val add_if_absent : set -> element -> unit
   val remove : set -> element -> unit
   val mem : set -> element -> bool
@@ -121,13 +120,10 @@ module HashMap : API = struct
   type element = key
   type set = map
   let[@inline] replace s x = ignore (replace s x x)
-  let[@inline] add_absent s x = add_absent s x x
   let[@inline] add_if_absent s x = ignore (add_if_absent s x x)
 end
 
 (* Instantiate [Stdlib.Hashtbl] so as to respect [API]. *)
-
-(* [add_absent] is implemented using [add]. *)
 
 module Hashtbl : API = struct
   include Stdlib.Hashtbl.Make(V)
@@ -135,13 +131,10 @@ module Hashtbl : API = struct
   type set = unit t
   let[@inline] create () = create 128
   let[@inline] replace s x = replace s x ()
-  and[@inline] add_absent s x = add s x ()
   let[@inline] add_if_absent s x = if not (mem s x) then replace s x
 end
 
 (* Instantiate [Stdlib.Set] so as to respect [API]. *)
-
-(* [add_absent] is implemented using [add]. *)
 
 module Set : API = struct
   open Set.Make(V)
@@ -149,7 +142,6 @@ module Set : API = struct
   type set = t ref
   let[@inline] create () = ref empty
   let[@inline] replace s x = (s := add x !s)
-  let add_absent = replace
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
   let[@inline] add_if_absent s x = if not (mem s x) then replace s x
@@ -157,15 +149,12 @@ end
 
 (* Instantiate [Baby.W.Set] so as to respect [API]. *)
 
-(* [add_absent] is implemented using [add]. *)
-
 module BabyWSet : API = struct
   open Baby.W.Set.Make(V)
   type element = int
   type set = t ref
   let[@inline] create () = ref empty
   let[@inline] replace s x = (s := add x !s)
-  let add_absent = replace
   let[@inline] remove s x = (s := remove x !s)
   let[@inline] mem s x = mem x !s
   let[@inline] add_if_absent s x = if not (mem s x) then replace s x
@@ -225,7 +214,6 @@ type argument =
 
 type itype =
   | ITReplace of argument
-  | ITAddAbsent of argument
   | ITAddIfAbsent of argument
   | ITRemove of argument
   | ITMem of argument
@@ -234,7 +222,6 @@ type itype =
 
 type instruction =
   | IReplace of key
-  | IAddAbsent of key
   | IAddIfAbsent of key
   | IRemove of key
   | IMem of key
@@ -296,15 +283,6 @@ let choose_instruction s (it : itype) : instruction =
       let x = choose_key a s in
       ignore (R.replace s x);
       IReplace x
-  | ITAddAbsent a ->
-      assert (a <> Present);
-      let x = choose_key a s in
-      if R.mem s x then begin
-        eprintf "Key %d is already present: cannot use add_absent.\n%!" x;
-        assert false
-      end;
-      ignore (R.replace s x);
-      IAddAbsent x
   | ITAddIfAbsent a ->
       let x = choose_key a s in
       ignore (R.add_if_absent s x);
@@ -332,7 +310,6 @@ let print_statistics (seq : sequence) =
   Array.iter (fun instruction ->
     match instruction with
     | IReplace   _   -> incr insert
-    | IAddAbsent _   -> incr insert
     | IAddIfAbsent _ -> incr insert
     | IRemove    _   -> incr remove
     | IMem       _   -> incr mem
@@ -371,8 +348,6 @@ let choose_scenario (r1, r2 : recipes) : scenario =
     match Array.unsafe_get seq i with
     | IReplace x ->
         M.replace s x
-    | IAddAbsent x ->
-        M.add_absent s x
     | IAddIfAbsent x ->
         M.add_if_absent s x
     | IRemove x ->
@@ -468,16 +443,6 @@ let absent_insertions_replace () : recipes =
 
 PROMOTE("absent insertions (replace)", absent_insertions_replace)
 
-(* Insert [k] absent keys using [add_absent]. *)
-
-let absent_insertions_add_absent () : recipes =
-  let k = k() in
-  let recipe1 = tombstones k
-  and recipe2 = k, (fun _ -> ITAddAbsent Absent) in
-  recipe1, recipe2
-
-PROMOTE("absent insertions (add_absent)", absent_insertions_add_absent)
-
 (* Insert [k] absent keys using [add_if_absent]. *)
 
 let absent_insertions_add_if_absent () : recipes =
@@ -559,8 +524,6 @@ let benchmark () : B.benchmark =
   match scheme() with
   | "absent-insertions-replace" ->
       absent_insertions_replace()
-  | "absent-insertions-add-absent" ->
-      absent_insertions_add_absent()
   | "absent-insertions-add-if-absent" ->
       absent_insertions_add_if_absent()
   | "deletions" ->

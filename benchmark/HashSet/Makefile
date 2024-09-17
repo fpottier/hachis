@@ -30,7 +30,6 @@ K := 2000000
 # List of the benchmarks that should be executed.
 SCHEMES := \
   absent-insertions-replace \
-  absent-insertions-add-absent \
   absent-insertions-add-if-absent \
   deletions \
   lookups \
@@ -84,7 +83,7 @@ plot:
 
 # ------------------------------------------------------------------------------
 
-# Comparing [replace], [add_absent], and [add_if_absent].
+# Comparing [replace] and [add_if_absent].
 
 .PHONY: compare-insertion-functions
 compare-insertion-functions: all
@@ -93,7 +92,7 @@ compare-insertion-functions: all
 	      -output comparing-insertion-functions.out \
 	      -prog "$(EXE) -machine" \
 	      -candidate HashSet \
-	      -scheme absent-insertions-add-absent,absent-insertions-replace,absent-insertions-add-if-absent \
+	      -scheme absent-insertions-replace,absent-insertions-add-if-absent \
 	      -k 1$(KILO),10$(KILO),100$(KILO),1$(MEGA),3$(MEGA),10$(MEGA),30$(MEGA)
 	@ pplot scatter \
 	      --yzero --xlog -x k -y nanos \

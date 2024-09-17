@@ -57,11 +57,6 @@ end)
       H.add m x v;
     was_absent
 
-  let add_absent m x v =
-    let was_present = H.mem m x in
-    assert (not was_present);
-    H.add m x v
-
   let replace m x v =
     let was_present = H.mem m x in
     let was_absent = not was_present in
@@ -72,14 +67,14 @@ end)
     try
       find_key m x
     with Not_found ->
-      add_absent m x v;
+      ignore (add_if_absent m x v);
       raise Not_found
 
   let find_value_else_add m x v =
     try
       find_value m x
     with Not_found ->
-      add_absent m x v;
+      ignore (add_if_absent m x v);
       raise Not_found
 
   let remove =
