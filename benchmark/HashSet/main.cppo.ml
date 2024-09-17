@@ -462,8 +462,8 @@ let tombstones k : recipe =
 
 let absent_insertions_replace () : recipes =
   let k = k() in
-  let recipe1 = empty
-  and recipe2 = k, (fun i -> ITReplace (Key (2 * (i + 1)))) in
+  let recipe1 = tombstones k
+  and recipe2 = k, (fun _ -> ITReplace Absent) in
   recipe1, recipe2
 
 PROMOTE("absent insertions (replace)", absent_insertions_replace)
@@ -472,8 +472,8 @@ PROMOTE("absent insertions (replace)", absent_insertions_replace)
 
 let absent_insertions_add_absent () : recipes =
   let k = k() in
-  let recipe1 = empty
-  and recipe2 = k, (fun i -> ITAddAbsent (Key (2 * (i + 1)))) in
+  let recipe1 = tombstones k
+  and recipe2 = k, (fun _ -> ITAddAbsent Absent) in
   recipe1, recipe2
 
 PROMOTE("absent insertions (add_absent)", absent_insertions_add_absent)
@@ -482,8 +482,8 @@ PROMOTE("absent insertions (add_absent)", absent_insertions_add_absent)
 
 let absent_insertions_add_if_absent () : recipes =
   let k = k() in
-  let recipe1 = empty
-  and recipe2 = k, (fun i -> ITAddIfAbsent (Key (2 * (i + 1)))) in
+  let recipe1 = tombstones k
+  and recipe2 = k, (fun _ -> ITAddIfAbsent Absent) in
   recipe1, recipe2
 
 PROMOTE("absent insertions (add_if_absent)", absent_insertions_add_if_absent)
