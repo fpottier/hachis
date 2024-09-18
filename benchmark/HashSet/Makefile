@@ -10,22 +10,21 @@ all:
 clean:
 	@ git clean -fdX
 
-# The executable (built on the fly by dune).
-
-MAIN := \
-  dune exec --profile=release \
-  --display=quiet --no-print-directory \
-  ./main.exe -- \
+# ------------------------------------------------------------------------------
 
 # The executable (previously built by dune).
+# -machine requests machine-readable output.
 
 EXE := \
   ../../_build/default/benchmark/HashSet/main.exe
 
-# [make bench] runs the benchmarks.
+# Abbreviations for thousands, millions, billions.
 
-# Size of benchmark scenario.
-K := 2000000
+KILO=000
+MEGA=000000
+GIGA=000000000
+
+# ------------------------------------------------------------------------------
 
 # List of the benchmarks that should be executed.
 SCHEMES := \
@@ -36,29 +35,14 @@ SCHEMES := \
   lookups-tombstones \
   everything \
 
-# List of the candidates that should be executed.
-CANDIDATES := \
-  Hashtbl \
-  HashMap \
-  HashSet \
+# ------------------------------------------------------------------------------
+
+# [make bench] runs the benchmarks and produces *.out and *.pdf files.
+
+SIZES := 100,1$(KILO),10$(KILO),100$(KILO),1$(MEGA),3$(MEGA),10$(MEGA),30$(MEGA)
 
 .PHONY: bench
 bench: all
-	@ mkdir -p log
-	@ for S in $(SCHEMES) ; do \
-	    for C in $(CANDIDATES) ; do \
-	      $(MAIN) -candidate $$C -scheme $$S -k $(K) 2>&1 | tee log/$$B.log ; \
-	      echo ; \
-	    done; \
-	  done
-
-# Abbreviations for thousands, millions, etc.
-
-KILO=000
-MEGA=000000
-GIGA=000000000
-
-record: all
 	@ for S in $(SCHEMES) ; do \
 	    prun \
 	      -runs 1 \
@@ -66,12 +50,8 @@ record: all
 	      -prog "$(EXE) -machine" \
 	      -candidate Hashtbl,HashMap,HashSet \
 	      -scheme $$S \
-	      -k 1$(KILO),10$(KILO),100$(KILO),1$(MEGA),3$(MEGA),10$(MEGA),30$(MEGA),100$(MEGA) \
+	      -k $(SIZES) \
 	    ; \
-	  done
-
-plot:
-	@ for S in $(SCHEMES) ; do \
 	    pplot scatter \
 	      --yzero --xlog -x k -y nanos \
 	      -legend-pos topleft \
@@ -79,11 +59,12 @@ plot:
 	      -input $$S.out \
 	      -output $$S.pdf \
 	    ; \
+	    open $$S.pdf ; \
 	  done
 
 # ------------------------------------------------------------------------------
 
-# Comparing [replace] and [add_if_absent].
+# Comparing [replace] and [add_if_absent] (on HashSet only).
 
 .PHONY: compare-insertion-functions
 compare-insertion-functions: all
@@ -93,7 +74,7 @@ compare-insertion-functions: all
 	      -prog "$(EXE) -machine" \
 	      -candidate HashSet \
 	      -scheme absent-insertions-replace,absent-insertions-add-if-absent \
-	      -k 1$(KILO),10$(KILO),100$(KILO),1$(MEGA),3$(MEGA),10$(MEGA),30$(MEGA)
+	      -k $(SIZES)
 	@ pplot scatter \
 	      --yzero --xlog -x k -y nanos \
 	      -legend-pos topleft \
@@ -101,3 +82,24 @@ compare-insertion-functions: all
 	      -input comparing-insertion-functions.out \
 	      -output comparing-insertion-functions.pdf
 	@ open comparing-insertion-functions.pdf
+
+# ------------------------------------------------------------------------------
+
+# [make one] runs one benchmark
+# at one fixed size
+# for one candidate implementation
+# with human-readable output.
+
+# Benchmark name.
+S := lookups
+
+# Size of benchmark scenario.
+K := 2000000
+
+# Candidate.
+C := HashSet
+
+.PHONY: one
+one: all
+	@ mkdir -p log
+	@ $(EXE) -candidate $(C) -scheme $(S) -k $(K) 2>&1 | tee log/$$B.log
