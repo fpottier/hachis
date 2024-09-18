@@ -1,0 +1,385 @@
+
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 100
+---
+timeout -1
+exectime     2.063352
+repetitions    117376
+cycles       0.670789
+nanos       27.679849
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 1000
+---
+timeout -1
+exectime     2.026619
+repetitions      8587
+cycles       0.849186
+nanos       35.108653
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 10000
+---
+timeout -1
+exectime     2.008371
+repetitions       627
+cycles       0.900700
+nanos       37.261244
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 100000
+---
+timeout -1
+exectime     2.355946
+repetitions        63
+cycles       1.403504
+nanos       58.092540
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 1000000
+---
+timeout -1
+exectime     3.808509
+repetitions         7
+cycles       3.005474
+nanos       122.104429
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 3000000
+---
+timeout -1
+exectime     7.628288
+repetitions         3
+cycles       3.930115
+nanos       161.157111
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 10000000
+---
+timeout -1
+exectime     33.939044
+repetitions         3
+cycles       3.979724
+nanos       164.956933
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme deletions
+k 30000000
+---
+timeout -1
+exectime     99.410228
+repetitions         3
+cycles       5.091551
+nanos       209.436433
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 100
+---
+timeout -1
+exectime     2.005856
+repetitions    135726
+cycles       0.395178
+nanos       16.415278
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 1000
+---
+timeout -1
+exectime     2.021476
+repetitions     11891
+cycles       0.473527
+nanos       19.655790
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 10000
+---
+timeout -1
+exectime     2.029887
+repetitions      1267
+cycles       0.585234
+nanos       24.276875
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 100000
+---
+timeout -1
+exectime     2.153972
+repetitions       133
+cycles       0.717867
+nanos       29.762105
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 1000000
+---
+timeout -1
+exectime     3.032719
+repetitions        12
+cycles       1.004992
+nanos       41.698333
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 3000000
+---
+timeout -1
+exectime     6.294780
+repetitions         7
+cycles       1.192592
+nanos       49.528048
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 10000000
+---
+timeout -1
+exectime     26.410473
+repetitions         7
+cycles       1.444451
+nanos       59.936800
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme deletions
+k 30000000
+---
+timeout -1
+exectime     92.335454
+repetitions         7
+cycles       1.505354
+nanos       62.563038
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 100
+---
+timeout -1
+exectime     2.080515
+repetitions    172945
+cycles       0.393151
+nanos       16.352713
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 1000
+---
+timeout -1
+exectime     2.084965
+repetitions     14340
+cycles       0.472074
+nanos       19.647559
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 10000
+---
+timeout -1
+exectime     2.019842
+repetitions      1456
+cycles       0.581398
+nanos       24.157898
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 100000
+---
+timeout -1
+exectime     2.135778
+repetitions       150
+cycles       0.687227
+nanos       28.516067
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 1000000
+---
+timeout -1
+exectime     2.471593
+repetitions        12
+cycles       1.012329
+nanos       42.093083
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 3000000
+---
+timeout -1
+exectime     8.175211
+repetitions        12
+cycles       1.182678
+nanos       49.128806
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 10000000
+---
+timeout -1
+exectime     21.509654
+repetitions         7
+cycles       1.469239
+nanos       61.113129
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme deletions
+k 30000000
+---
+timeout -1
+exectime     78.744827
+repetitions         7
+cycles       1.520713
+nanos       63.336157
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========

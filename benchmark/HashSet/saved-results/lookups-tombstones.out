@@ -1,0 +1,385 @@
+
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 100
+---
+timeout -1
+exectime     2.086585
+repetitions    220432
+cycles       0.188379
+nanos        7.804039
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 1000
+---
+timeout -1
+exectime     2.058090
+repetitions     12460
+cycles       0.368281
+nanos       15.254815
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 10000
+---
+timeout -1
+exectime     2.067369
+repetitions       949
+cycles       0.738703
+nanos       30.503161
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 100000
+---
+timeout -1
+exectime     2.218775
+repetitions        88
+cycles       0.917779
+nanos       37.736477
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 1000000
+---
+timeout -1
+exectime     2.650623
+repetitions         7
+cycles       1.870610
+nanos       76.567143
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 3000000
+---
+timeout -1
+exectime     11.068787
+repetitions         7
+cycles       2.292791
+nanos       93.727381
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 10000000
+---
+timeout -1
+exectime     22.701750
+repetitions         3
+cycles       2.577577
+nanos       106.816233
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme lookups-tombstones
+k 30000000
+---
+timeout -1
+exectime     73.459132
+repetitions         3
+cycles       3.354672
+nanos       139.264300
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 100
+---
+timeout -1
+exectime     2.005737
+repetitions    164759
+cycles       0.201574
+nanos        8.350864
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 1000
+---
+timeout -1
+exectime     2.017897
+repetitions     16511
+cycles       0.396121
+nanos       16.457998
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 10000
+---
+timeout -1
+exectime     2.025045
+repetitions      1456
+cycles       0.779323
+nanos       32.377404
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 100000
+---
+timeout -1
+exectime     2.020800
+repetitions       133
+cycles       0.604023
+nanos       25.081353
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 1000000
+---
+timeout -1
+exectime     2.233306
+repetitions        12
+cycles       0.854079
+nanos       35.485750
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 3000000
+---
+timeout -1
+exectime     8.716027
+repetitions        12
+cycles       0.936421
+nanos       38.886417
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 10000000
+---
+timeout -1
+exectime     24.455182
+repetitions         7
+cycles       2.322094
+nanos       96.379186
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme lookups-tombstones
+k 30000000
+---
+timeout -1
+exectime     72.183275
+repetitions         7
+cycles       1.485044
+nanos       61.649938
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 100
+---
+timeout -1
+exectime     2.057799
+repetitions    220432
+cycles       0.195357
+nanos        8.118694
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 1000
+---
+timeout -1
+exectime     2.033104
+repetitions     19937
+cycles       0.311008
+nanos       12.934193
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 10000
+---
+timeout -1
+exectime     2.032837
+repetitions      1597
+cycles       0.760115
+nanos       31.577395
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 100000
+---
+timeout -1
+exectime     2.032416
+repetitions       150
+cycles       0.594499
+nanos       24.661733
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 1000000
+---
+timeout -1
+exectime     2.858382
+repetitions        18
+cycles       0.855643
+nanos       35.525389
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 3000000
+---
+timeout -1
+exectime     7.131498
+repetitions        12
+cycles       0.938388
+nanos       38.945278
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 10000000
+---
+timeout -1
+exectime     21.003942
+repetitions         7
+cycles       2.331133
+nanos       96.760743
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme lookups-tombstones
+k 30000000
+---
+timeout -1
+exectime     63.246726
+repetitions         7
+cycles       1.482320
+nanos       61.516852
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========

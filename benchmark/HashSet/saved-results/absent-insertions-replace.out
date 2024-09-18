@@ -1,0 +1,337 @@
+
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 1000
+---
+timeout -1
+exectime     2.055633
+repetitions      9869
+cycles       0.977848
+nanos       38.513021
+major        3.075415
+minor        2.410394
+promoted     3.075391
+allocated    2.410419
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 10000
+---
+timeout -1
+exectime     2.059614
+repetitions       627
+cycles       2.982890
+nanos       119.975598
+major        3.818771
+minor        7.006248
+promoted     3.818098
+allocated    7.006921
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 100000
+---
+timeout -1
+exectime     2.224959
+repetitions        63
+cycles       2.990722
+nanos       120.729048
+major        3.824724
+minor        6.230846
+promoted     3.824717
+allocated    6.230853
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 1000000
+---
+timeout -1
+exectime     3.623894
+repetitions         7
+cycles       4.968410
+nanos       200.548714
+major        3.970044
+minor        6.029116
+promoted     3.970035
+allocated    6.029125
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 3000000
+---
+timeout -1
+exectime     6.910139
+repetitions         3
+cycles       7.229108
+nanos       295.329444
+major        3.999899
+minor        6.781470
+promoted     3.999896
+allocated    6.781473
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 10000000
+---
+timeout -1
+exectime     31.345143
+repetitions         3
+cycles       9.966551
+nanos       404.993267
+major        3.999494
+minor        7.350563
+promoted     3.999494
+allocated    7.350564
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate Hashtbl
+scheme absent-insertions-replace
+k 30000000
+---
+timeout -1
+exectime     94.193445
+repetitions         3
+cycles       9.267635
+nanos       375.258178
+major        3.998694
+minor        6.234199
+promoted     3.998693
+allocated    6.234199
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 1000
+---
+timeout -1
+exectime     2.036667
+repetitions     11349
+cycles       1.680798
+nanos       67.343819
+major        0.000000
+minor        7.985341
+promoted     0.000000
+allocated    7.985341
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 10000
+---
+timeout -1
+exectime     2.020467
+repetitions      1153
+cycles       1.538128
+nanos       62.554380
+major        0.000000
+minor        6.553800
+promoted     0.000000
+allocated    6.553800
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 100000
+---
+timeout -1
+exectime     2.060390
+repetitions       117
+cycles       1.073839
+nanos       44.473932
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 1000000
+---
+timeout -1
+exectime     3.218571
+repetitions        12
+cycles       2.787511
+nanos       113.352583
+major        0.000000
+minor        8.388610
+promoted     0.000000
+allocated    8.388610
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 3000000
+---
+timeout -1
+exectime     6.756452
+repetitions         7
+cycles       2.691780
+nanos       111.691667
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 10000000
+---
+timeout -1
+exectime     29.478101
+repetitions         7
+cycles       3.822994
+nanos       155.364571
+major        0.000000
+minor        6.710887
+promoted     0.000000
+allocated    6.710887
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashMap
+scheme absent-insertions-replace
+k 30000000
+---
+timeout -1
+exectime     100.234651
+repetitions         7
+cycles       4.665971
+nanos       187.453714
+major        0.000000
+minor        8.947849
+promoted     0.000000
+allocated    8.947849
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 1000
+---
+timeout -1
+exectime     2.063918
+repetitions     13683
+cycles       1.397520
+nanos       56.693781
+major        0.000000
+minor        3.908064
+promoted     0.000000
+allocated    3.908064
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 10000
+---
+timeout -1
+exectime     2.043589
+repetitions      1327
+cycles       1.330157
+nanos       54.794876
+major        0.000000
+minor        3.229981
+promoted     0.000000
+allocated    3.229981
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 100000
+---
+timeout -1
+exectime     2.045596
+repetitions       133
+cycles       0.929356
+nanos       38.511880
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 1000000
+---
+timeout -1
+exectime     2.525154
+repetitions        12
+cycles       2.028327
+nanos       83.054500
+major        0.000000
+minor        4.194305
+promoted     0.000000
+allocated    4.194305
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 3000000
+---
+timeout -1
+exectime     8.676985
+repetitions        12
+cycles       1.924413
+nanos       78.843278
+major        0.000000
+minor        0.000000
+promoted     0.000000
+allocated    0.000000
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 10000000
+---
+timeout -1
+exectime     23.414687
+repetitions         7
+cycles       3.174543
+nanos       129.687200
+major        0.000000
+minor        3.355443
+promoted     0.000000
+allocated    3.355443
+==========
+machine MAC-02008607
+prog ../../_build/default/benchmark/HashSet/main.exe -machine 
+candidate HashSet
+scheme absent-insertions-replace
+k 30000000
+---
+timeout -1
+exectime     85.678761
+repetitions         7
+cycles       4.053292
+nanos       165.035857
+major        0.000000
+minor        4.473924
+promoted     0.000000
+allocated    4.473924
+==========
