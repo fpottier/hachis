@@ -696,15 +696,16 @@ module type MAP = sig
      where {m c} is the capacity of the set [s]. *)
   val absent_key_histogram : map -> histogram
 
-  (**[average h] returns the average search length in the histogram [h].
+  (**[average h] returns the average value of the histogram [h].
 
      Time complexity: {m O(n)},
-     where {m n} is the cardinality of the map [m]. *)
+     where {m n} is the cardinality of the histogram [h]. *)
   val average : histogram -> float
 
-  (**[statistics m] returns a string of information that includes the
-     cardinality, capacity, occupancy rate, average search length,
-     and search length histogram of the map [m].
+  (**[statistics m] returns a string of information about the map [m]. This
+     information includes the cardinality, capacity, occupancy rate, average
+     search length, present-key histogram, average insertion length, and
+     absent-key histogram.
 
      Time complexity: {m O(c \log c)},
      where {m c} is the capacity of the map [m]. *)
