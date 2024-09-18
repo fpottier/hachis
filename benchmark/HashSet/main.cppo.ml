@@ -149,16 +149,16 @@ end
 
 (* Instantiate [Baby.W.Set] so as to respect [API]. *)
 
-module BabyWSet : API = struct
-  open Baby.W.Set.Make(V)
-  type element = int
-  type set = t ref
-  let[@inline] create () = ref empty
-  let[@inline] replace s x = (s := add x !s)
-  let[@inline] remove s x = (s := remove x !s)
-  let[@inline] mem s x = mem x !s
-  let[@inline] add_if_absent s x = if not (mem s x) then replace s x
-end
+(* module BabyWSet : API = struct *)
+(*   open Baby.W.Set.Make(V) *)
+(*   type element = int *)
+(*   type set = t ref *)
+(*   let[@inline] create () = ref empty *)
+(*   let[@inline] replace s x = (s := add x !s) *)
+(*   let[@inline] remove s x = (s := remove x !s) *)
+(*   let[@inline] mem s x = mem x !s *)
+(*   let[@inline] add_if_absent s x = if not (mem s x) then replace s x *)
+(* end *)
 
 (* We use the module [R] in the generation of benchmark scenarios. *)
 
@@ -383,8 +383,8 @@ let choose_scenario (r1, r2 : recipes) : scenario =
   match c with
   | "Set" ->
       BENCHMARK(Set)
-  | "Baby.W.Set" ->
-      BENCHMARK(BabyWSet)
+  (* | "Baby.W.Set" -> *)
+  (*     BENCHMARK(BabyWSet) *)
   | "Hashtbl" ->
       BENCHMARK(Hashtbl)
   | "HashMap" ->
