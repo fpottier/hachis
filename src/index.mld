@@ -12,6 +12,32 @@ As a result, these data structures offer good locality.
 + For {b hash maps}, use the functor
   {!Hachis.HashMap.Make}.
 
+Hash sets are slightly faster than hash maps.
+A hash set occupies twice less space in memory than a hash map
+  with the same cardinality.
+
+{1:performance Performance}
+
+Compared with
+{{: https://ocaml.org/manual/5.2/api/Hashtbl.html} the standard library's hash maps},
+[hachis]'s hash sets and hash maps
+are faster, more compact,
+and have better locality.
+
+Some benchmarks
+carried out using version [5.2.0+flambda] of the OCaml compiler
+suggest than
+[hachis] can be
+2x faster than [Hashtbl] on insertions,
+2x-4x faster than [Hashtbl] on deletions,
+and
+1x-3x faster than [Hashtbl] on lookups.
+These numbers vary depending on the scenario
+and on the cardinality of the hash set or hash map.
+
+It seems safe to say that [hachis] almost always
+outperforms [Hashtbl].
+
 {1:caution Words of Caution}
 
 [hachis]'s sets and maps are {b not thread-safe} and {b do not include a
