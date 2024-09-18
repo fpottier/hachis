@@ -684,13 +684,16 @@ module type MAP = sig
      inserting a key that is not present in the map. *)
   type histogram = int Map.Make(Int).t
 
-  (**[histogram m] returns a histogram of the search lengths for the map
-     [m].
+  (**[present_key_histogram m] returns a present-key histogram for the map [m].
 
      Time complexity: {m O(c\log c)},
      where {m c} is the capacity of the map [m]. *)
   val present_key_histogram : map -> histogram
 
+  (**[absent_key_histogram m] returns an absent-key histogram for the map [m].
+
+     Time complexity: {m O(c \log c)},
+     where {m c} is the capacity of the set [s]. *)
   val absent_key_histogram : map -> histogram
 
   (**[average h] returns the average search length in the histogram [h].
