@@ -111,6 +111,18 @@ module type SET = sig
 
   (** {2 Insertion} *)
 
+  (**We provide two insertion functions,
+     namely {!add_if_absent} and {!replace}.
+
+     If equivalence implies equality (that is, if [equal x y] implies that
+     [x] and [y] cannot be distinguished) then {!add_if_absent} and
+     {!replace} behave in the same way.
+
+     Otherwise, {!add_if_absent} and {!replace} behave differently. Suppose
+     that [x] and [y] are two distinct yet equivalent elements. If [y] is
+     already present in the set [s], then [add_if_absent s x] has no effect,
+     whereas [replace s x] replaces [y] with [x] in the set [s]. *)
+
   (**If [x] or some equivalent element is a member of the set [s], then
      [add_if_absent s x] has no effect and returns [false]. Otherwise,
      [add_if_absent s x] inserts the element [x] into the set [s] and
@@ -397,6 +409,19 @@ module type MAP = sig
   val copy : map -> map
 
   (** {2 Insertion} *)
+
+  (**We provide two insertion functions,
+     namely {!add_if_absent} and {!replace}.
+
+     If equivalence implies equality (that is, if [equal x y] implies that
+     [x] and [y] cannot be distinguished) then {!add_if_absent} and
+     {!replace} behave in the same way.
+
+     Otherwise, {!add_if_absent} and {!replace} behave differently. Suppose
+     that [x] and [y] are two distinct yet equivalent keys. If [y] is
+     already present in the map [m], then [add_if_absent m x v] has no
+     effect, whereas [replace m x v] removes the key [y] (and its value)
+     and inserts the key [x] with value [v] in the map [m]. *)
 
   (**If [x] or some equivalent key is present in the map [m], then
      [add_if_absent m x v] has no effect and returns [false]. Otherwise,
