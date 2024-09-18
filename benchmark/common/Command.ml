@@ -4,7 +4,7 @@ open Printf
 
 (* Prepare to read and parse the command line. *)
 
-let specs : Arg.(key * spec * doc) list ref =
+let specs : (Arg.key * Arg.spec * Arg.doc) list ref =
   ref []
 
 let declare spec =
