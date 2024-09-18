@@ -2,7 +2,7 @@
 
 [hachis] is an OCaml library that offers {b hash sets} and {b hash maps}.
 
-These data structures handle collisions by via {{: https://en.wikipedia.org/wiki/Linear_probing} linear probing},
+These data structures handle collisions via {{: https://en.wikipedia.org/wiki/Linear_probing} linear probing},
 a technique that relies on linear searches within an array. All of
 the data is stored within one large array (for hash sets)
 or two large arrays (for hash maps).
