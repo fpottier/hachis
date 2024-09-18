@@ -34,16 +34,3 @@
   after the commit point, but this seems to imply that
   the current value of these fields can never be trusted
   unless the lock has been taken.
-
-## Cleanup
-
-* Benchmark: understand why "a bit of everything" does not give us a large
-  edge.
-
-* Benchmark using `pbench`. Keep the number of operations just high enough to
-  obtain meaningful measurements. Test with a range of table sizes.
-
-* Documentation: add a careful claim about speed.
-  (Benchmark with OCaml 4 and 5, with and without flambda.)
-
-* Release.
