@@ -90,6 +90,8 @@ doc:
 	@ dune build @doc
 	@ find $(DOCDIR) -name "*.html" \
 	  | xargs sed -i.bak 's|<span class="xref-unresolved">Stdlib</span>.||g'
+	@ find $(DOCDIR) -name "*.html.bak" \
+	  | xargs rm -f
 	@ echo "You can view the documentation by typing 'make view'".
 
 .PHONY: view
