@@ -3,10 +3,10 @@
 (package
   (name hachis)
   (authors
-    "François Pottier"
+    "François Pottier <francois.pottier@inria.fr>"
   )
   (maintainers
-    "François Pottier"
+    "François Pottier <francois.pottier@inria.fr>"
   )
   (source (uri git+https://github.com/fpottier/hachis.git))
   (homepage https://github.com/fpottier/hachis/)
