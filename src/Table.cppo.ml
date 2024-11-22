@@ -200,10 +200,23 @@ let[@inline] is_index (s : table) (i : index) : bool =
 
 (* -------------------------------------------------------------------------- *)
 
-(* The functions [is_power_of_two] and [check] are used only during testing.  *)
+(* [check] and its auxiliary functions are used only during testing.  *)
+
+(* [is_power_of_two c] determines whether [c] is a power of two. *)
 
 let rec is_power_of_two c =
   c = 1 || c mod 2 = 0 && is_power_of_two (c / 2)
+
+(* [no_void_slot_within s j k] verifies that the table [s] contains
+   no void slot between the indices [j] (included) and [k] (excluded). *)
+
+let rec no_void_slot_within s j k =
+  if j < k then begin
+    assert (K.unsafe_get s.key j != void);
+    no_void_slot_within s (next s j) k
+  end
+
+(* [check s] verifies that the table [s] is well-formed. *)
 
 let check s =
   assert begin
@@ -236,6 +249,14 @@ let check s =
     done;
     assert (s.population = !pop);
     assert (s.occupation = !occ);
+    (* For each key in the table, there cannot be a void slot between
+       the ideal position of this key and its actual position. *)
+    for k = 0 to capacity - 1 do
+      let c = K.unsafe_get s.key k in
+      if is_not_sentinel c then
+        let x = c in
+        no_void_slot_within s (start s x) k
+    done;
     (* The [value] array either has length zero or has the same length
        as the [key] array. (It is lazily allocated.) If the population
        is nonzero then both arrays must have the same length. *)
