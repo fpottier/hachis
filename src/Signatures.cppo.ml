@@ -504,7 +504,7 @@ module type MAP = sig
 
   (** {2 Insertion and lookup} *)
 
-  (**[find_key_else_add m x] determines whether some key [y] that is
+  (**[find_key_else_add m x v] determines whether some key [y] that is
      equivalent to [x] is present in the map [m]. If so, [y] is returned.
      Otherwise, the key [x] with value [v] is inserted into the map [m],
      and [Not_found] is raised.
