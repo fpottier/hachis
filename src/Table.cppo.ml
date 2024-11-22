@@ -203,7 +203,7 @@ let[@inline] is_index (s : table) (i : index) : bool =
 (* The functions [is_power_of_two] and [check] are used only during testing.  *)
 
 let rec is_power_of_two c =
-  c = 1 || is_power_of_two (c / 2)
+  c = 1 || c mod 2 = 0 && is_power_of_two (c / 2)
 
 let check s =
   assert begin
