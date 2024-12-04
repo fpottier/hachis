@@ -34,3 +34,21 @@
   after the commit point, but this seems to imply that
   the current value of these fields can never be trusted
   unless the lock has been taken.
+  See [this post](https://ibraheem.ca/posts/designing-papaya/).
+  And [this one](https://probablydance.com/2017/02/26/i-wrote-the-fastest-hashtable/).
+  Or [this talk](https://www.youtube.com/watch?v=HJ-719EGIts) by Cliff Click.
+  And [this paper](https://dl.acm.org/doi/10.1145/3309206).
+  And [this one](https://dl.acm.org/doi/abs/10.1145/3016078.2851196).
+  And [Hopscotch hashing](https://people.csail.mit.edu/shanir/publications/disc2008_submission_98.pdf).
+  If we do not need an exact computation of the load factor
+  then an approximate population count could suffice
+  (but it is still desirable to have a constant-time exact
+   population count, when requested by the user).
+
+  (A different, lock-based approach would be to divide the arrays into pages
+   and to use one readers-writer lock per page. To avoid deadlocks,
+   each thread must hold at most one lock at a time.)
+  (Another lock-based approach is to use just one lock for the whole table,
+   and to use sharding, that is, to implement a single logical table
+   using a collection of tables, using the hash function to decide
+   which keys are distributed into which tables. See `dashmap` in Rust.)
