@@ -1,4 +1,5 @@
 (lang dune 3.11)
+(name hachis)
 (generate_opam_files true)
 (package
   (name hachis)
